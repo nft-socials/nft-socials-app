@@ -1,0 +1,7 @@
+{
+  "network": "sepolia",
+  "contractAddress": "0x774eaf75e99e7a52705efa10f6f1fcbde918e447cc8a227a42d33d7dd68538c",
+  "classHash": "0x2d4df23e473f684dd16f1c6d3809a70573695d9cf408d2575bf1c65ad4469f",
+  "deploymentTxHash": "0x68b8e27dafa401e7920284177cbe007920bdb090f6cb4d955d72616f7f6d0ea",
+  "deployedAt": "2025-08-11T15:56:38.151Z"
+}

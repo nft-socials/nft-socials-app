@@ -1,0 +1,466 @@
+[
+  {
+    "type": "impl",
+    "name": "OnePostDailyImpl",
+    "interface_name": "contracts::YourContract::IOnePostDaily"
+  },
+  {
+    "type": "struct",
+    "name": "core::integer::u256",
+    "members": [
+      { "name": "low", "type": "core::integer::u128" },
+      { "name": "high", "type": "core::integer::u128" }
+    ]
+  },
+  {
+    "type": "enum",
+    "name": "core::bool",
+    "variants": [
+      { "name": "False", "type": "()" },
+      { "name": "True", "type": "()" }
+    ]
+  },
+  {
+    "type": "struct",
+    "name": "contracts::YourContract::Post",
+    "members": [
+      { "name": "token_id", "type": "core::integer::u256" },
+      {
+        "name": "author",
+        "type": "core::starknet::contract_address::ContractAddress"
+      },
+      {
+        "name": "current_owner",
+        "type": "core::starknet::contract_address::ContractAddress"
+      },
+      { "name": "content_hash", "type": "core::felt252" },
+      { "name": "timestamp", "type": "core::integer::u64" },
+      { "name": "is_swappable", "type": "core::bool" }
+    ]
+  },
+  {
+    "type": "struct",
+    "name": "contracts::YourContract::SwapProposal",
+    "members": [
+      { "name": "id", "type": "core::felt252" },
+      { "name": "initiator_token_id", "type": "core::integer::u256" },
+      { "name": "target_token_id", "type": "core::integer::u256" },
+      {
+        "name": "initiator",
+        "type": "core::starknet::contract_address::ContractAddress"
+      },
+      {
+        "name": "target",
+        "type": "core::starknet::contract_address::ContractAddress"
+      },
+      { "name": "expiration", "type": "core::integer::u64" },
+      { "name": "is_active", "type": "core::bool" }
+    ]
+  },
+  {
+    "type": "struct",
+    "name": "core::byte_array::ByteArray",
+    "members": [
+      {
+        "name": "data",
+        "type": "core::array::Array::<core::bytes_31::bytes31>"
+      },
+      { "name": "pending_word", "type": "core::felt252" },
+      { "name": "pending_word_len", "type": "core::integer::u32" }
+    ]
+  },
+  {
+    "type": "interface",
+    "name": "contracts::YourContract::IOnePostDaily",
+    "items": [
+      {
+        "type": "function",
+        "name": "create_daily_post",
+        "inputs": [{ "name": "content_hash", "type": "core::felt252" }],
+        "outputs": [{ "type": "core::integer::u256" }],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "propose_swap",
+        "inputs": [
+          { "name": "my_token_id", "type": "core::integer::u256" },
+          { "name": "target_token_id", "type": "core::integer::u256" }
+        ],
+        "outputs": [{ "type": "core::felt252" }],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "accept_swap",
+        "inputs": [{ "name": "proposal_id", "type": "core::felt252" }],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "reject_swap",
+        "inputs": [{ "name": "proposal_id", "type": "core::felt252" }],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "get_user_posts",
+        "inputs": [
+          {
+            "name": "user",
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "outputs": [
+          { "type": "core::array::Array::<contracts::YourContract::Post>" }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_swap_proposals",
+        "inputs": [
+          {
+            "name": "user",
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "core::array::Array::<contracts::YourContract::SwapProposal>"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_all_posts",
+        "inputs": [
+          { "name": "offset", "type": "core::integer::u32" },
+          { "name": "limit", "type": "core::integer::u32" }
+        ],
+        "outputs": [
+          { "type": "core::array::Array::<contracts::YourContract::Post>" }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "can_user_post_today",
+        "inputs": [
+          {
+            "name": "user",
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "outputs": [{ "type": "core::bool" }],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_post_by_token_id",
+        "inputs": [{ "name": "token_id", "type": "core::integer::u256" }],
+        "outputs": [{ "type": "contracts::YourContract::Post" }],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "is_post_swappable",
+        "inputs": [{ "name": "token_id", "type": "core::integer::u256" }],
+        "outputs": [{ "type": "core::bool" }],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_user_last_swap_time",
+        "inputs": [
+          {
+            "name": "user",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          { "name": "token_id", "type": "core::integer::u256" }
+        ],
+        "outputs": [{ "type": "core::integer::u64" }],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "name",
+        "inputs": [],
+        "outputs": [{ "type": "core::byte_array::ByteArray" }],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "symbol",
+        "inputs": [],
+        "outputs": [{ "type": "core::byte_array::ByteArray" }],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "token_uri",
+        "inputs": [{ "name": "token_id", "type": "core::integer::u256" }],
+        "outputs": [{ "type": "core::byte_array::ByteArray" }],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "owner_of",
+        "inputs": [{ "name": "token_id", "type": "core::integer::u256" }],
+        "outputs": [
+          { "type": "core::starknet::contract_address::ContractAddress" }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "balance_of",
+        "inputs": [
+          {
+            "name": "owner",
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "outputs": [{ "type": "core::integer::u256" }],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "approve",
+        "inputs": [
+          {
+            "name": "to",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          { "name": "token_id", "type": "core::integer::u256" }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "get_approved",
+        "inputs": [{ "name": "token_id", "type": "core::integer::u256" }],
+        "outputs": [
+          { "type": "core::starknet::contract_address::ContractAddress" }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "set_approval_for_all",
+        "inputs": [
+          {
+            "name": "operator",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          { "name": "approved", "type": "core::bool" }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "is_approved_for_all",
+        "inputs": [
+          {
+            "name": "owner",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "operator",
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "outputs": [{ "type": "core::bool" }],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "transfer_from",
+        "inputs": [
+          {
+            "name": "from",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "to",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          { "name": "token_id", "type": "core::integer::u256" }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      }
+    ]
+  },
+  { "type": "constructor", "name": "constructor", "inputs": [] },
+  {
+    "type": "event",
+    "name": "contracts::YourContract::OnePostDaily::PostCreated",
+    "kind": "struct",
+    "members": [
+      { "name": "token_id", "type": "core::integer::u256", "kind": "key" },
+      {
+        "name": "author",
+        "type": "core::starknet::contract_address::ContractAddress",
+        "kind": "key"
+      },
+      { "name": "content_hash", "type": "core::felt252", "kind": "data" },
+      { "name": "timestamp", "type": "core::integer::u64", "kind": "data" }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "contracts::YourContract::OnePostDaily::SwapProposed",
+    "kind": "struct",
+    "members": [
+      { "name": "proposal_id", "type": "core::felt252", "kind": "key" },
+      {
+        "name": "initiator",
+        "type": "core::starknet::contract_address::ContractAddress",
+        "kind": "key"
+      },
+      {
+        "name": "target",
+        "type": "core::starknet::contract_address::ContractAddress",
+        "kind": "key"
+      },
+      {
+        "name": "initiator_token_id",
+        "type": "core::integer::u256",
+        "kind": "data"
+      },
+      {
+        "name": "target_token_id",
+        "type": "core::integer::u256",
+        "kind": "data"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "contracts::YourContract::OnePostDaily::SwapAccepted",
+    "kind": "struct",
+    "members": [
+      { "name": "proposal_id", "type": "core::felt252", "kind": "key" },
+      {
+        "name": "initiator_token_id",
+        "type": "core::integer::u256",
+        "kind": "data"
+      },
+      {
+        "name": "target_token_id",
+        "type": "core::integer::u256",
+        "kind": "data"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "contracts::YourContract::OnePostDaily::SwapRejected",
+    "kind": "struct",
+    "members": [
+      { "name": "proposal_id", "type": "core::felt252", "kind": "key" }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "contracts::YourContract::OnePostDaily::Transfer",
+    "kind": "struct",
+    "members": [
+      {
+        "name": "from",
+        "type": "core::starknet::contract_address::ContractAddress",
+        "kind": "key"
+      },
+      {
+        "name": "to",
+        "type": "core::starknet::contract_address::ContractAddress",
+        "kind": "key"
+      },
+      { "name": "token_id", "type": "core::integer::u256", "kind": "key" }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "contracts::YourContract::OnePostDaily::Approval",
+    "kind": "struct",
+    "members": [
+      {
+        "name": "owner",
+        "type": "core::starknet::contract_address::ContractAddress",
+        "kind": "key"
+      },
+      {
+        "name": "approved",
+        "type": "core::starknet::contract_address::ContractAddress",
+        "kind": "key"
+      },
+      { "name": "token_id", "type": "core::integer::u256", "kind": "key" }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "contracts::YourContract::OnePostDaily::ApprovalForAll",
+    "kind": "struct",
+    "members": [
+      {
+        "name": "owner",
+        "type": "core::starknet::contract_address::ContractAddress",
+        "kind": "key"
+      },
+      {
+        "name": "operator",
+        "type": "core::starknet::contract_address::ContractAddress",
+        "kind": "key"
+      },
+      { "name": "approved", "type": "core::bool", "kind": "data" }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "contracts::YourContract::OnePostDaily::Event",
+    "kind": "enum",
+    "variants": [
+      {
+        "name": "PostCreated",
+        "type": "contracts::YourContract::OnePostDaily::PostCreated",
+        "kind": "nested"
+      },
+      {
+        "name": "SwapProposed",
+        "type": "contracts::YourContract::OnePostDaily::SwapProposed",
+        "kind": "nested"
+      },
+      {
+        "name": "SwapAccepted",
+        "type": "contracts::YourContract::OnePostDaily::SwapAccepted",
+        "kind": "nested"
+      },
+      {
+        "name": "SwapRejected",
+        "type": "contracts::YourContract::OnePostDaily::SwapRejected",
+        "kind": "nested"
+      },
+      {
+        "name": "Transfer",
+        "type": "contracts::YourContract::OnePostDaily::Transfer",
+        "kind": "nested"
+      },
+      {
+        "name": "Approval",
+        "type": "contracts::YourContract::OnePostDaily::Approval",
+        "kind": "nested"
+      },
+      {
+        "name": "ApprovalForAll",
+        "type": "contracts::YourContract::OnePostDaily::ApprovalForAll",
+        "kind": "nested"
+      }
+    ]
+  }
+]
