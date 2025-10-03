@@ -7,6 +7,7 @@
 - Touch-optimized trading: Swipe to buy/sell NFTs
 Mobile wallet integration: Seamless Starknet wallet connect
 
+
 **Mobile-Specific Innovation:**
 
 - Location-based posts: Geo-tagged daily content
