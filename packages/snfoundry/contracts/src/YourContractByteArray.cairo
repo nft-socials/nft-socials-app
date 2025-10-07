@@ -2,7 +2,7 @@ use starknet::{ContractAddress};
 use core::byte_array::ByteArray;
 
 #[starknet::interface]
-trait IOnePostDaily<TContractState> {
+pub trait IOnePostDaily<TContractState> {
     // Post creation
     fn create_post(ref self: TContractState, content_hash: ByteArray, price: u256) -> u256;
 
@@ -36,29 +36,29 @@ trait IOnePostDaily<TContractState> {
 }
 
 #[derive(Drop, Serde, starknet::Store)]
-struct Post {
-    token_id: u256,
-    author: ContractAddress,
-    current_owner: ContractAddress,
-    content_hash: ByteArray,
-    timestamp: u64,
-    is_for_sale: bool,
-    price: u256,
+pub struct Post {
+    pub token_id: u256,
+    pub author: ContractAddress,
+    pub current_owner: ContractAddress,
+    pub content_hash: ByteArray,
+    pub timestamp: u64,
+    pub is_for_sale: bool,
+    pub price: u256,
 }
 
 #[derive(Drop, Serde, starknet::Store, Copy)]
-struct SellProposal {
-    id: felt252,
-    token_id: u256,
-    seller: ContractAddress,
-    buyer: ContractAddress,
-    price: u256,
-    expiration: u64,
-    is_active: bool,
+pub struct SellProposal {
+    pub id: felt252,
+    pub token_id: u256,
+    pub seller: ContractAddress,
+    pub buyer: ContractAddress,
+    pub price: u256,
+    pub expiration: u64,
+    pub is_active: bool,
 }
 
 #[starknet::contract]
-mod OnePostDaily {
+pub mod OnePostDaily {
     use super::{IOnePostDaily, Post, SellProposal};
     use starknet::{
         ContractAddress, get_caller_address, get_block_timestamp,
@@ -358,8 +358,8 @@ mod OnePostDaily {
             // Execute sale - transfer NFT
             self._transfer(proposal.seller, caller, proposal.token_id);
 
-            // Update post status
-            let mut updated_post = post;
+            // Update post status (re-read after transfer to preserve updated ownership)
+            let mut updated_post = self.posts.read(proposal.token_id);
             updated_post.is_for_sale = false;
             updated_post.price = 0;
             self.posts.write(proposal.token_id, updated_post);
@@ -387,8 +387,7 @@ mod OnePostDaily {
             });
         }
 
-        fn reject_sell(ref self: ContractState, proposal_id: felt252) {
-            let caller = get_caller_address();
+        fn reject_sell(ref self: ContractState, proposal_id: felt252) {            
             let mut proposal = self.sell_proposals.read(proposal_id);
 
             assert(proposal.is_active, 'Proposal not active');
@@ -440,8 +439,8 @@ mod OnePostDaily {
             // Execute sale - transfer NFT
             self._transfer(seller, caller, token_id);
 
-            // Update post status
-            let mut updated_post = post;
+            // Update post status (re-read after transfer to preserve updated ownership)
+            let mut updated_post = self.posts.read(token_id);
             updated_post.is_for_sale = false;
             updated_post.price = 0;
             self.posts.write(token_id, updated_post);

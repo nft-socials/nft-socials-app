@@ -13,7 +13,8 @@ openzeppelin_token = "2.0.0"
 [dev-dependencies]
 openzeppelin_utils = "2.0.0"
 openzeppelin_testing = "4.2.0"
-snforge_std = "0.45.0"
+snforge_std = "0.48.0"
+cairo_test = "2.12.1"
 
 [[target.starknet-contract]]
 casm = true # taggle this to `false` to speed up compilation/script tests

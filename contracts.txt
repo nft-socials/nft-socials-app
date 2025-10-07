@@ -1,0 +1,12 @@
+> @ss-2/snfoundry@0.0.1 deploy
+> ts-node scripts-ts/helpers/deploy-wrapper.ts
+
+   Compiling contracts v0.2.0 (/home/zarcc/Documents/GitHub/WEB3/one-post-daily-old/packages/snfoundry/contracts/Scarb.toml)
+    Finished `dev` profile target(s) in 9 seconds
+Deploying Contract  OnePostDaily
+Contract Deployed at  0x35869ee4ffeef50da3e0f6e86eacee05fae913628435884309b44f30261c81f
+Deploy Calls Executed at  0x20b87eeaf96e95f06c2ab90655fddf00cdfb9e7ccb8184c7b19751ad32f2038
+All Setup Done!
+📦 Found package name in Scarb.toml: contracts
+📝 Updated TypeScript contract definition file on /home/zarcc/Documents/GitHub/WEB3/one-post-daily-old/packages/frontend/contracts/deployedContracts.ts
+zarcc@zarcc-HP-EliteBook-830-G8-Notebook-PC:~/Documents/GitHub/WEB3/one-post-daily-old/packages/snfoundry$ 

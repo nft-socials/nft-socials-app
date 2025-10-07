@@ -14,7 +14,7 @@ function main() {
     .option("network", {
       type: "string",
       choices: ["devnet", "sepolia", "mainnet"],
-      default: "devnet",
+      default: "sepolia",
       description: "Specify the network to deploy to",
     })
     .option("reset", {

@@ -1,7 +1,9 @@
-use starknet::{ContractAddress, get_block_timestamp};
+use starknet::{ContractAddress};
 use snforge_std::{declare, ContractClassTrait, DeclareResultTrait, start_cheat_caller_address, stop_cheat_caller_address, start_cheat_block_timestamp, stop_cheat_block_timestamp};
+use core::byte_array::ByteArray;
+use core::array::ArrayTrait;
 
-use contracts::YourContractByteArray::{IOnePostDailyDispatcher, IOnePostDailyDispatcherTrait, Post, SellProposal, OnePostDaily};
+use contracts::YourContractByteArray::{IOnePostDailyDispatcher, IOnePostDailyDispatcherTrait, Post, SellProposal};
 
 // Test constants
 const ALICE: felt252 = 'alice';
@@ -56,7 +58,7 @@ fn test_create_post_basic() {
     assert(post.author == alice, 'Wrong post author');
     assert(post.current_owner == alice, 'Wrong post owner');
     assert(post.content_hash == content_hash, 'Wrong content hash');
-    assert(post.is_for_sale == true, 'Post should be for sale');
+    assert(post.is_for_sale, 'Post should be for sale');
     assert(post.price == price, 'Wrong price');
     
     stop_cheat_caller_address(contract.contract_address);
@@ -75,7 +77,7 @@ fn test_create_post_without_price() {
     let token_id = contract.create_post(content_hash.clone(), price);
     
     let post = contract.get_post_by_token_id(token_id);
-    assert(post.is_for_sale == false, 'Post should not be for sale');
+    assert(!post.is_for_sale, 'Post should not be for sale');
     assert(post.price == 0, 'Price should be 0');
     
     stop_cheat_caller_address(contract.contract_address);
@@ -100,12 +102,12 @@ fn test_propose_sell() {
     
     // Check post is now for sale
     let post = contract.get_post_by_token_id(token_id);
-    assert(post.is_for_sale == true, 'Post should be for sale');
+    assert(post.is_for_sale, 'Post should be for sale');
     assert(post.price == sell_price, 'Wrong price');
     
     // Check proposal exists
-    let proposals = contract.get_sell_proposals(alice);
-    assert(proposals.len() == 1, 'Should have 1 proposal');
+    let proposals: Array<SellProposal> = contract.get_sell_proposals(alice);
+    assert(proposals.len() == 1, '1 proposal');
     
     stop_cheat_caller_address(contract.contract_address);
 }
@@ -171,7 +173,7 @@ fn test_buy_post_direct() {
     // Verify post is no longer for sale
     let post = contract.get_post_by_token_id(token_id);
     assert(post.current_owner == bob, 'Wrong current owner');
-    assert(post.is_for_sale == false, 'Post should not be for sale');
+    assert(!post.is_for_sale, 'Post should not be for sale');
     assert(post.price == 0, 'Price should be reset');
 }
 
@@ -227,7 +229,7 @@ fn test_cancel_sell() {
     
     // Verify post is no longer for sale
     let post = contract.get_post_by_token_id(token_id);
-    assert(post.is_for_sale == false, 'Post should not be for sale');
+    assert(!post.is_for_sale, 'Post should not be for sale');
     assert(post.price == 0, 'Price should be reset');
     
     stop_cheat_caller_address(contract.contract_address);
@@ -251,17 +253,22 @@ fn test_get_all_posts_for_sale() {
     stop_cheat_caller_address(contract.contract_address);
     
     // Get posts for sale
-    let posts_for_sale = contract.get_all_posts_for_sale(0, 10);
-    assert(posts_for_sale.len() == 2, 'Should have 2 posts for sale');
+    let posts_for_sale: Array<Post> = contract.get_all_posts_for_sale(0, 10);
+    assert(posts_for_sale.len() == 2, '2 sale posts');
     
     // Verify the posts are the correct ones
-    let post1 = *posts_for_sale.at(0);
-    let post2 = *posts_for_sale.at(1);
-    
-    assert(post1.token_id == token_id1 || post1.token_id == token_id2, 'Wrong post in sale list');
-    assert(post2.token_id == token_id1 || post2.token_id == token_id2, 'Wrong post in sale list');
-    assert(post1.is_for_sale == true, 'Post should be for sale');
-    assert(post2.is_for_sale == true, 'Post should be for sale');
+    let post1 = posts_for_sale.at(0);
+    let post2 = posts_for_sale.at(1);
+
+    let post1_token_id: u256 = *post1.token_id;
+    let post2_token_id: u256 = *post2.token_id;
+    let post1_is_for_sale: bool = *post1.is_for_sale;
+    let post2_is_for_sale: bool = *post2.is_for_sale;
+
+    assert(post1_token_id == token_id1 || post1_token_id == token_id2, 'Wrong post in sale list');
+    assert(post2_token_id == token_id1 || post2_token_id == token_id2, 'Wrong post in sale list');
+    assert(post1_is_for_sale, 'Post should be for sale');
+    assert(post2_is_for_sale, 'Post should be for sale');
 }
 
 #[test]
@@ -289,7 +296,7 @@ fn test_accept_sell_proposal() {
     // Verify post is no longer for sale
     let post = contract.get_post_by_token_id(token_id);
     assert(post.current_owner == bob, 'Wrong current owner');
-    assert(post.is_for_sale == false, 'Post should not be for sale');
+    assert(!post.is_for_sale, 'Post should not be for sale');
     assert(post.price == 0, 'Price should be reset');
 }
 
@@ -329,7 +336,7 @@ fn test_reject_sell_proposal() {
 
     // Post should still be for sale (rejection doesn't remove from sale)
     let post = contract.get_post_by_token_id(token_id);
-    assert(post.is_for_sale == true, 'Post should still be for sale');
+    assert(post.is_for_sale, 'Post should still be for sale');
 }
 
 #[test]
@@ -366,8 +373,8 @@ fn test_secondary_sale_with_royalty() {
     assert(contract.owner_of(token_id) == charlie, 'Charlie should own the post');
 
     let post = contract.get_post_by_token_id(token_id);
-    assert(post.author == alice, 'Alice should still be the author');
-    assert(post.current_owner == charlie, 'Charlie should be current owner');
+    assert(post.author == alice, 'author mismatch');
+    assert(post.current_owner == charlie, 'owner mismatch');
 }
 
 #[test]
@@ -379,16 +386,16 @@ fn test_multiple_users_posts() {
 
     // Each user creates posts
     start_cheat_caller_address(contract.contract_address, alice);
-    let alice_token1 = contract.create_post("QmAlice1", 1000000000000000000);
-    let alice_token2 = contract.create_post("QmAlice2", 0);
+    let _alice_token1 = contract.create_post("QmAlice1", 1000000000000000000);
+    let _alice_token2 = contract.create_post("QmAlice2", 0);
     stop_cheat_caller_address(contract.contract_address);
 
     start_cheat_caller_address(contract.contract_address, bob);
-    let bob_token1 = contract.create_post("QmBob1", 2000000000000000000);
+    let _bob_token1 = contract.create_post("QmBob1", 2000000000000000000);
     stop_cheat_caller_address(contract.contract_address);
 
     start_cheat_caller_address(contract.contract_address, charlie);
-    let charlie_token1 = contract.create_post("QmCharlie1", 0);
+    let _charlie_token1 = contract.create_post("QmCharlie1", 0);
     stop_cheat_caller_address(contract.contract_address);
 
     // Test get_user_posts for each user
@@ -424,7 +431,7 @@ fn test_proposal_expiration() {
     start_cheat_caller_address(contract.contract_address, alice);
     let content_hash: ByteArray = "QmTestExpiry";
     let token_id = contract.create_post(content_hash, 0);
-    let proposal_id = contract.propose_sell(token_id, 1000000000000000000);
+    let _proposal_id = contract.propose_sell(token_id, 1000000000000000000);
     stop_cheat_caller_address(contract.contract_address);
 
     // Fast forward time beyond expiration (7 days = 604800 seconds)
@@ -490,10 +497,10 @@ fn test_is_post_for_sale_and_get_price() {
     stop_cheat_caller_address(contract.contract_address);
 
     // Test is_post_for_sale
-    assert(contract.is_post_for_sale(token_id1) == true, 'Post should be for sale');
-    assert(contract.is_post_for_sale(token_id2) == false, 'Post should not be for sale');
+    assert(contract.is_post_for_sale(token_id1), 'Post should be for sale');
+    assert(!contract.is_post_for_sale(token_id2), 'Post should not be for sale');
 
     // Test get_post_price
     assert(contract.get_post_price(token_id1) == price, 'Wrong price for sale post');
-    assert(contract.get_post_price(token_id2) == 0, 'Price should be 0 for non-sale post');
+    assert(contract.get_post_price(token_id2) == 0, 'price 0');
 }
