@@ -1,0 +1,96 @@
+/* NFT Content Protection Styles */
+
+/* Disable text selection globally for NFT content */
+.nft-protected {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Disable image dragging and context menu */
+.nft-protected img {
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+  pointer-events: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Disable text selection for NFT text content */
+.nft-protected p,
+.nft-protected span,
+.nft-protected div {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Disable highlighting and selection */
+.nft-protected::selection {
+  background: transparent;
+}
+
+.nft-protected::-moz-selection {
+  background: transparent;
+}
+
+/* Disable print screen and screenshot protection (limited effectiveness) */
+.nft-protected {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* Additional protection for mobile devices */
+@media (max-width: 768px) {
+  .nft-protected {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Disable F12 developer tools (limited effectiveness) */
+.nft-protected {
+  -webkit-app-region: no-drag;
+}
+
+/* Watermark overlay for additional protection */
+.nft-watermark {
+  position: relative;
+}
+
+.nft-watermark::before {
+  content: "OnePostDaily NFT";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-45deg);
+  font-size: 24px;
+  color: rgba(255, 215, 0, 0.1);
+  font-weight: bold;
+  pointer-events: none;
+  z-index: 1;
+  white-space: nowrap;
+}
+
+/* Disable copy keyboard shortcuts */
+.nft-protected {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}

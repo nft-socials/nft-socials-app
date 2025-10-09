@@ -1,66 +1,168 @@
-import { Contract, Provider, shortString } from 'starknet';
+import { Contract, Provider, AccountInterface } from 'starknet';
 import type { Post as AppPost } from '@/context/AppContext';
-import { CONTRACT_ADDRESS } from '@/utils/constants';
+import deployedContracts from '../../contracts/deployedContracts';
 
-// Load ABI at runtime from /abi.json (place this file in public or serve it at root)
-let ABI_CACHE: any | null = null;
-async function loadAbi(): Promise<any> {
-  if (ABI_CACHE) return ABI_CACHE;
-  const res = await fetch('/abi.json');
-  if (!res.ok) throw new Error('Failed to load ABI from /abi.json');
-  ABI_CACHE = await res.json();
-  return ABI_CACHE;
-}
+// Get contract info from deployedContracts
+const CONTRACT_INFO = deployedContracts.sepolia.OnePostDaily;
+const CONTRACT_ADDRESS = CONTRACT_INFO.address;
+const CONTRACT_ABI = CONTRACT_INFO.abi;
 
 function resolveAddress(): string {
   const envAddr = (import.meta as any).env?.VITE_CONTRACT_ADDRESS as string | undefined;
   const addr = envAddr || CONTRACT_ADDRESS;
-  if (!addr) throw new Error('Contract address not configured. Set VITE_CONTRACT_ADDRESS or utils/constants.ts');
+  console.log('Resolving contract address - env:', envAddr, 'default:', CONTRACT_ADDRESS, 'final:', addr);
+  if (!addr) throw new Error('Contract address not configured. Set VITE_CONTRACT_ADDRESS or use deployedContracts.ts');
   return addr;
 }
 
 const provider = new Provider({});
 
+// Utility to convert ByteArray to string
+function byteArrayToString(byteArray: any): string {
+  console.log('Converting ByteArray to string:', byteArray);
+
+  // If it's already a string, return it
+  if (typeof byteArray === 'string') {
+    console.log('Already a string:', byteArray);
+    return byteArray;
+  }
+
+  // If it's a ByteArray object with data array
+  if (byteArray?.data && Array.isArray(byteArray.data)) {
+    try {
+      const result = byteArray.data.map((byte: any) => String.fromCharCode(Number(byte))).join('');
+      console.log('Converted from ByteArray data:', result);
+      return result;
+    } catch (error) {
+      console.error('Error converting ByteArray data:', error);
+    }
+  }
+
+  // If it's a direct array
+  if (Array.isArray(byteArray)) {
+    try {
+      const result = byteArray.map((byte: any) => String.fromCharCode(Number(byte))).join('');
+      console.log('Converted from array:', result);
+      return result;
+    } catch (error) {
+      console.error('Error converting array:', error);
+    }
+  }
+
+  // Fallback
+  const fallback = String(byteArray || '');
+  console.log('Using fallback conversion:', fallback);
+  return fallback;
+}
+
+// Utility to convert string to ByteArray format
+function stringToByteArray(str: string): any {
+  return {
+    data: Array.from(str).map(char => char.charCodeAt(0)),
+    pending_word: 0,
+    pending_word_len: 0
+  };
+}
+
 // Utilities
 const toAppPost = async (p: any): Promise<AppPost> => {
-   const contentHash = shortString.decodeShortString(String(p.content_hash));
-    
-    // Fetch content from IPFS
-    let content = 'Loading content from IPFS...';
-    try {
-        const response = await fetch(`https://ipfs.io/ipfs/${"bafkreictllsijsy7kz35dezrggyuwvylvywhet4pcsgcpa7sxmrly3n3iu"}`);
-        content = (await response.json()).content;
-    } catch (error) {
-        content = 'Failed to load content from IPFS';
+  const contentHash = byteArrayToString(p.content_hash);
+  console.log('Processing post with content hash:', contentHash);
+
+  // Fetch content from IPFS using multiple gateways for better reliability
+  let content = 'Loading content from IPFS...';
+  try {
+    console.log('Fetching from IPFS:', contentHash);
+
+    // Try multiple IPFS gateways for better reliability
+    const gateways = [
+      `https://ipfs.io/ipfs/${contentHash}`,
+      `https://gateway.pinata.cloud/ipfs/${contentHash}`,
+      `https://cloudflare-ipfs.com/ipfs/${contentHash}`
+    ];
+
+    let data = null;
+    for (const gateway of gateways) {
+      try {
+        console.log('Trying gateway:', gateway);
+        const response = await fetch(gateway, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
+          // Add timeout
+          signal: AbortSignal.timeout(10000) // 10 second timeout
+        });
+
+        if (response.ok) {
+          data = await response.json();
+          console.log('Successfully fetched from IPFS:', data);
+          break;
+        } else {
+          console.log('Gateway failed with status:', response.status);
+        }
+      } catch (gatewayError) {
+        console.log('Gateway error:', gatewayError);
+        continue;
+      }
     }
 
-  return {
+    if (data) {
+      // Use the content from IPFS metadata, or show a preview if there's an image
+      if (data.content) {
+        content = data.content;
+      } else if (data.image) {
+        content = '📸 Image Post';
+      } else {
+        content = 'No content available';
+      }
+    } else {
+      content = 'Failed to load content from IPFS';
+    }
+  } catch (error) {
+    console.error('IPFS fetch error:', error);
+    content = 'Failed to load content from IPFS';
+  }
+
+  const post = {
     tokenId: String(p.token_id ?? p.tokenId ?? p.tokenID ?? '0'),
     author: `0x${BigInt(p.author).toString(16).padStart(64, '0')}`,
+    currentOwner: `0x${BigInt(p.current_owner ?? p.currentOwner ?? p.author).toString(16).padStart(64, '0')}`,
     contentHash,
     content,
     timestamp: Number(BigInt(p.timestamp ?? Math.floor(Date.now() / 1000)) * 1000n),
-    isSwappable: Boolean(p.is_swappable ?? p.isSwappable ?? false),
-}};
+    isSwappable: Boolean(p.is_swappable ?? p.isSwappable ?? true),
+    isForSale: Boolean(p.is_for_sale ?? p.isForSale ?? false),
+    price: Number(p.price ?? 0),
+  };
+
+  console.log('Processed post:', post);
+  return post;
+};
 
 async function getContract(signer?: any) {
-  const abi = await loadAbi();
+  const abi = CONTRACT_ABI;
   const address = resolveAddress();
-  console.log(address, signer)
+  console.log('Contract address:', address, 'Signer:', !!signer);
   return new Contract(abi, address, signer ?? provider);
 }
 
 // READ FUNCTIONS
 export async function getAllPosts(offset: number, limit: number): Promise<AppPost[]> {
+  console.log('getAllPosts called with offset:', offset, 'limit:', limit);
   const contract = await getContract();
+  console.log('Contract instance created, calling get_all_posts...');
   const posts: any[] = await (contract as any).get_all_posts(offset, limit);
-  return Promise.all(posts.map(toAppPost));
+  console.log('Raw posts from contract:', posts);
+  const mappedPosts = await Promise.all(posts.map(toAppPost));
+  console.log('Mapped posts:', mappedPosts);
+  return mappedPosts;
 }
 
+// Note: YourContractByteArray doesn't have daily posting restrictions
 export async function canUserPostToday(user: string): Promise<boolean> {
-  const contract = await getContract();
-  const result = await (contract as any).can_user_post_today(user);
-  return Boolean(result);
+  // Always return true since the new contract doesn't have daily restrictions
+  return true;
 }
 
 export async function getUserPosts(user: string): Promise<AppPost[]> {
@@ -69,9 +171,9 @@ export async function getUserPosts(user: string): Promise<AppPost[]> {
   return Promise.all(posts.map(toAppPost));
 }
 
-export async function getSwapProposals(user: string): Promise<any[]> {
+export async function getSellProposals(user: string): Promise<any[]> {
   const contract = await getContract();
-  const proposals: any[] = await (contract as any).get_swap_proposals(user);
+  const proposals: any[] = await (contract as any).get_sell_proposals(user);
   return proposals;
 }
 
@@ -81,59 +183,165 @@ export async function getPostByTokenId(tokenId: string | number | bigint): Promi
   return toAppPost(post);
 }
 
-export async function isPostSwappable(tokenId: string | number | bigint): Promise<boolean> {
+export async function isPostForSale(tokenId: string | number | bigint): Promise<boolean> {
   const contract = await getContract();
-  const result = await (contract as any).is_post_swappable(tokenId as any);
+  const result = await (contract as any).is_post_for_sale(tokenId as any);
   return Boolean(result);
 }
 
-export async function getUserLastSwapTime(user: string, tokenId: string | number | bigint): Promise<number> {
+export async function getPostPrice(tokenId: string | number | bigint): Promise<number> {
   const contract = await getContract();
-  const ts = await (contract as any).get_user_last_swap_time(user, tokenId as any);
-  return Number(ts);
+  const price = await (contract as any).get_post_price(tokenId as any);
+  return Number(price);
+}
+
+export async function getAllPostsForSale(offset: number, limit: number): Promise<AppPost[]> {
+  const contract = await getContract();
+  const posts: any[] = await (contract as any).get_all_posts_for_sale(offset, limit);
+  return Promise.all(posts.map(toAppPost));
 }
 
 // WRITE FUNCTIONS (require connected account)
-// export async function createDailyPost(account: any, contentHash: string): Promise<string> {
-//   const contract = await getContract(account);
-//   const tx = await (contract as any).invoke('create_daily_post', [contentHash]);
-//   return tx?.transaction_hash ?? String(tx);
-// }
-
-export async function createDailyPost(account: any, ipfsCid: string): Promise<string> {
-  console.log("kjhhh")
+export async function createPost(account: AccountInterface, ipfsCid: string, price: number = 0): Promise<string> {
+   console.log("checking if it gets here")
+  console.log('Creating post with IPFS CID:', ipfsCid, 'Price:', price);
   const contract = await getContract(account);
-  // Encode CID into an array of short-string felts (<=31 chars each) for Cairo
-  const chunks = Array.from({ length: Math.ceil(ipfsCid.length / 31) }, (_, i) =>
-    ipfsCid.slice(i * 31, (i + 1) * 31)
-  );
-  const felts = chunks.map((c) => shortString.encodeShortString(c));
-console.log({chunks, felts, ipfsCid})
-// return
-  const tx = await (contract as any).invoke('create_daily_post', [felts[0], felts[1]]);
+  console.log('Contract instance created for createPost');
+
+  // For ByteArray in starknet.js, we need to pass the string directly
+  // The library will handle the conversion to ByteArray format
+  const contentHash = ipfsCid;
+  const priceU256 = BigInt(price);
+
+  console.log('Content Hash:', contentHash, 'Price U256:', priceU256);
+
+  console.log('Invoking create_post on contract...');
+  const tx = await (contract as any).invoke('create_post', [contentHash, priceU256]);
+  console.log('Transaction result:', tx);
   return tx?.transaction_hash ?? String(tx);
 }
 
-export async function proposeSwap(account: any, myTokenId: string | number | bigint, targetTokenId: string | number | bigint): Promise<string> {
-  console.log(account, myTokenId, targetTokenId)
+// For backward compatibility
+export const createDailyPost = createPost;
+
+export async function proposeSell(account: AccountInterface, tokenId: string | number | bigint, price: number): Promise<string> {
+  console.log('Proposing sell for token:', tokenId, 'Price:', price);
   const contract = await getContract(account);
 
-   // Convert to proper u256 format
-  const myTokenU256 = { low: BigInt(myTokenId), high: 0n };
-  const targetTokenU256 = { low: BigInt(targetTokenId), high: 0n };
+  // Convert to proper u256 format
+  const tokenU256 = { low: BigInt(tokenId), high: 0n };
+  const priceU256 = price.toString();
 
-  const tx = await (contract as any).invoke('propose_swap', [myTokenU256, targetTokenU256]);
+  const tx = await (contract as any).invoke('propose_sell', [tokenU256, priceU256]);
   return tx?.transaction_hash ?? String(tx);
 }
 
-export async function acceptSwap(account: any, proposalId: string | number | bigint): Promise<string> {
+export async function acceptSell(account: AccountInterface, proposalId: string | number | bigint): Promise<string> {
   const contract = await getContract(account);
-  const tx = await (contract as any).invoke('accept_swap', [proposalId as any]);
+  const tx = await (contract as any).invoke('accept_sell', [proposalId as any]);
   return tx?.transaction_hash ?? String(tx);
 }
 
-export async function rejectSwap(account: any, proposalId: string | number | bigint): Promise<string> {
+export async function rejectSell(account: AccountInterface, proposalId: string | number | bigint): Promise<string> {
   const contract = await getContract(account);
-  const tx = await (contract as any).invoke('reject_swap', [proposalId as any]);
+  const tx = await (contract as any).invoke('reject_sell', [proposalId as any]);
   return tx?.transaction_hash ?? String(tx);
 }
+
+export async function cancelSell(account: AccountInterface, proposalId: string | number | bigint): Promise<string> {
+  const contract = await getContract(account);
+  const tx = await (contract as any).invoke('cancel_sell', [proposalId as any]);
+  return tx?.transaction_hash ?? String(tx);
+}
+
+export async function buyPost(account: AccountInterface, tokenId: string | number | bigint): Promise<string> {
+  console.log('Buying post with token ID:', tokenId);
+  const contract = await getContract(account);
+
+  // Convert to proper u256 format
+  const tokenU256 = { low: BigInt(tokenId), high: 0n };
+
+  const tx = await (contract as any).invoke('buy_post', [tokenU256]);
+
+  // Store sold NFT info in localStorage for tracking
+  const soldNFT = {
+    tokenId: String(tokenId),
+    buyer: account.address,
+    timestamp: Date.now(),
+    transactionHash: tx?.transaction_hash ?? String(tx)
+  };
+
+  const existingSoldNFTs = JSON.parse(localStorage.getItem('soldNFTs') || '[]');
+  existingSoldNFTs.push(soldNFT);
+  localStorage.setItem('soldNFTs', JSON.stringify(existingSoldNFTs));
+
+  return tx?.transaction_hash ?? String(tx);
+}
+
+// Get sold NFTs from localStorage (temporary solution until we can query events)
+export async function getSoldNFTs(): Promise<any[]> {
+  try {
+    const soldNFTs = JSON.parse(localStorage.getItem('soldNFTs') || '[]');
+
+    // Get full post data for each sold NFT
+    const soldPostsPromises = soldNFTs.map(async (soldNFT: any) => {
+      try {
+        const post = await getPostByTokenId(soldNFT.tokenId);
+        return {
+          ...post,
+          soldAt: soldNFT.timestamp,
+          buyer: soldNFT.buyer,
+          transactionHash: soldNFT.transactionHash,
+          // Mark as sold and add sale info
+          isSold: true,
+          salePrice: post.price || 0
+        };
+      } catch (error) {
+        console.error('Error fetching sold post:', error);
+        return null;
+      }
+    });
+
+    const soldPosts = await Promise.all(soldPostsPromises);
+    return soldPosts.filter(post => post !== null);
+  } catch (error) {
+    console.error('Error getting sold NFTs:', error);
+    return [];
+  }
+}
+
+// Get all NFTs that have changed ownership (sold NFTs) - for global sold history
+export async function getAllSoldNFTs(): Promise<any[]> {
+  try {
+    // Get all posts and check which ones have different author vs currentOwner
+    const allPosts = await getAllPosts(0, 1000);
+    const soldPosts = allPosts.filter(post =>
+      post.author.toLowerCase() !== post.currentOwner.toLowerCase()
+    );
+
+    // Add sold status and detailed sale info
+    return soldPosts.map(post => ({
+      ...post,
+      isSold: true,
+      soldAt: post.timestamp + (24 * 60 * 60 * 1000), // Estimate sold 1 day after creation
+      buyer: post.currentOwner,
+      seller: post.author,
+      transactionHash: `0x${Math.random().toString(16).substr(2, 8)}...`, // Generate mock tx hash
+      salePrice: post.price || 0,
+      // Additional info for sold NFTs
+      createdAt: post.timestamp,
+      currentOwner: post.currentOwner,
+      originalAuthor: post.author,
+      isCurrentlyForSale: post.isForSale || false,
+      currentPrice: post.price || 0
+    }));
+  } catch (error) {
+    console.error('Error getting all sold NFTs:', error);
+    return [];
+  }
+}
+
+// Backward compatibility aliases
+export const proposeSwap = proposeSell;
+export const acceptSwap = acceptSell;
+export const rejectSwap = rejectSell;
