@@ -1,0 +1,316 @@
+import { useAccount } from '@starknet-react/core';
+import { useCallback, useState } from 'react';
+import { toast } from 'react-hot-toast';
+import {
+  createPost,
+  proposeSell,
+  acceptSell,
+  rejectSell,
+  cancelSell,
+  buyPost,
+  getAllPosts,
+  getUserPosts,
+  getPostByTokenId,
+  canUserPostToday,
+  isPostForSale,
+  getSellProposals,
+  getAllPostsForSale,
+  getPostPrice
+} from '@/services/contract';
+import { storeOnIPFS, PostMetadata } from '@/services/ipfs';
+import type { Post } from '@/context/AppContext';
+
+export interface PostNFTState {
+  isLoading: boolean;
+  error?: string;
+}
+
+export const usePostNFT = () => {
+  const { account, address } = useAccount();
+  const [state, setState] = useState<PostNFTState>({ isLoading: false });
+
+  const setLoading = (isLoading: boolean) => {
+    setState(prev => ({ ...prev, isLoading }));
+  };
+
+  const setError = (error?: string) => {
+    setState(prev => ({ ...prev, error }));
+  };
+
+  // Mint a new post as NFT
+  const mintPost = useCallback(async (content: string, imageDataUrl?: string, onSuccess?: () => void): Promise<string | null> => {
+    console.log('mintPost called with:', { content, hasImage: !!imageDataUrl, account: !!account, address });
+
+    if (!account || !address) {
+      toast.error('Please connect your wallet first');
+      return null;
+    }
+
+    try {
+      console.log('Starting mintPost process...');
+      setLoading(true);
+      setError(undefined);
+
+      // Check if user can post today
+      // const canPost = await canUserPostToday(address);
+      // if (!canPost) {
+      //   toast.error('You have already posted today. Come back tomorrow!');
+      //   return null;
+      // }
+
+      // Prepare metadata for IPFS
+      const metadata: PostMetadata = {
+        content: content || (imageDataUrl ? '' : 'Post content'), // Allow empty content if there's an image
+        timestamp: Date.now(),
+        author: address,
+        version: '1.0',
+        image: imageDataUrl // Include image data if provided
+      };
+      console.log('Prepared metadata:', metadata);
+
+      // Store on IPFS
+      console.log('About to store on IPFS...');
+      const ipfsHash = await storeOnIPFS(metadata);
+      console.log("Storing to IPFS successful:", ipfsHash);
+
+      // Mint NFT with IPFS hash (price = 0 for regular posts)
+      console.log('About to call createPost...');
+      const txHash = await createPost(account, ipfsHash, 0);
+      console.log('createPost successful:', txHash);
+
+      toast.success('Post minted successfully! 🎉 Redirecting to home...');
+
+      // Call success callback to redirect to home
+      if (onSuccess) {
+        setTimeout(() => {
+          onSuccess();
+        }, 1500); // Small delay to show success message
+      }
+
+      return txHash;
+    } catch (err: unknown) {
+      console.error('Error in mintPost:', err);
+      const errorMessage = (err as Error)?.message || 'Failed to mint post';
+      console.error('Error message:', errorMessage);
+      setError(errorMessage);
+      toast.error(errorMessage);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [account, address]);
+
+  // Propose a sell
+  const proposePostSell = useCallback(async (tokenId: string, price: number): Promise<string | null> => {
+    if (!account) {
+      toast.error('Please connect your wallet first');
+      return null;
+    }
+
+    if (price <= 0) {
+      toast.error('Price must be greater than 0');
+      return null;
+    }
+
+    try {
+      setLoading(true);
+      setError(undefined);
+
+      const txHash = await proposeSell(account, tokenId, price);
+      toast.success('Sell proposal submitted! 💰');
+      return txHash;
+    } catch (err: unknown) {
+      const errorMessage = (err as Error)?.message || 'Failed to propose sell';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [account]);
+
+  // Accept a sell proposal
+  const acceptSellProposal = useCallback(async (proposalId: string): Promise<string | null> => {
+    if (!account) {
+      toast.error('Please connect your wallet first');
+      return null;
+    }
+
+    try {
+      setLoading(true);
+      setError(undefined);
+
+      const txHash = await acceptSell(account, proposalId);
+      toast.success('Purchase completed! ✅');
+      return txHash;
+    } catch (err: unknown) {
+      const errorMessage = (err as Error)?.message || 'Failed to accept sell';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [account]);
+
+  // Reject a swap proposal
+  const rejectSwapProposal = useCallback(async (proposalId: string): Promise<string | null> => {
+    if (!account) {
+      toast.error('Please connect your wallet first');
+      return null;
+    }
+
+    try {
+      setLoading(true);
+      setError(undefined);
+
+      const txHash = await rejectSell(account, proposalId);
+      toast.success('Swap rejected');
+      return txHash;
+    } catch (err: unknown) {
+      const errorMessage = (err as Error)?.message || 'Failed to reject sell';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [account]);
+
+  // Buy a post directly
+  const buyPostDirect = useCallback(async (tokenId: string): Promise<string | null> => {
+    if (!account) {
+      toast.error('Please connect your wallet first');
+      return null;
+    }
+
+    try {
+      setLoading(true);
+      setError(undefined);
+
+      const txHash = await buyPost(account, tokenId);
+      toast.success('Post purchased successfully! 🎉');
+      return txHash;
+    } catch (err: unknown) {
+      const errorMessage = (err as Error)?.message || 'Failed to buy post';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [account]);
+
+  // Cancel a sell proposal
+  const cancelSellProposalFunc = useCallback(async (proposalId: string): Promise<string | null> => {
+    if (!account) {
+      toast.error('Please connect your wallet first');
+      return null;
+    }
+
+    try {
+      setLoading(true);
+      setError(undefined);
+
+      const txHash = await cancelSell(account, proposalId);
+      toast.success('Sell proposal cancelled');
+      return txHash;
+    } catch (err: unknown) {
+      const errorMessage = (err as Error)?.message || 'Failed to cancel sell proposal';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [account]);
+
+  // Fetch posts
+  const fetchAllPosts = useCallback(async (offset: number = 0, limit: number = 20): Promise<Post[]> => {
+    try {
+      return await getAllPosts(offset, limit);
+    } catch (err: unknown) {
+      const errorMessage = (err as Error)?.message || 'Failed to fetch posts';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      return [];
+    }
+  }, []);
+
+  const fetchUserPosts = useCallback(async (userAddress: string): Promise<Post[]> => {
+    try {
+      return await getUserPosts(userAddress);
+    } catch (err: unknown) {
+      const errorMessage = (err as Error)?.message || 'Failed to fetch user posts';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      return [];
+    }
+  }, []);
+
+  const fetchPost = useCallback(async (tokenId: string): Promise<Post | null> => {
+    try {
+      return await getPostByTokenId(tokenId);
+    } catch (err: unknown) {
+      const errorMessage = (err as Error)?.message || 'Failed to fetch post';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      return null;
+    }
+  }, []);
+
+  // Check functions
+  const checkCanPostToday = useCallback(async (userAddress?: string): Promise<boolean> => {
+    const addressToCheck = userAddress || address;
+    if (!addressToCheck) return false;
+
+    try {
+      return await canUserPostToday(addressToCheck);
+    } catch (err: unknown) {
+      console.error('Failed to check if user can post today:', err);
+      return false;
+    }
+  }, [address]);
+
+  const checkIsPostSwappable = useCallback(async (tokenId: string): Promise<boolean> => {
+    try {
+      return await isPostForSale(tokenId);
+    } catch (err: unknown) {
+      console.error('Failed to check if post is for sale:', err);
+      return false;
+    }
+  }, []);
+
+  const fetchSwapProposals = useCallback(async (userAddress?: string): Promise<any[]> => {
+    const addressToCheck = userAddress || address;
+    if (!addressToCheck) return [];
+
+    try {
+      return await getSellProposals(addressToCheck);
+    } catch (err: unknown) {
+      const errorMessage = (err as Error)?.message || 'Failed to fetch sell proposals';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      return [];
+    }
+  }, [address]);
+
+  return {
+    ...state,
+    mintPost,
+    proposePostSell,
+    acceptSellProposal,
+    rejectSellProposal: rejectSwapProposal,
+    buyPost: buyPostDirect,
+    cancelSellProposal: cancelSellProposalFunc,
+    fetchAllPosts,
+    fetchUserPosts,
+    fetchPost,
+    checkCanPostToday,
+    checkIsPostForSale: checkIsPostSwappable,
+    fetchSellProposals: fetchSwapProposals,
+    getAllPostsForSale,
+    getPostPrice,
+    isPostForSale,
+  };
+};

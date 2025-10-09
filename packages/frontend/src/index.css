@@ -10,7 +10,7 @@
     --card-foreground: 0 0% 98%;
     --popover: 0 0% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 142.1 76.2% 36.3%;
+    --primary: 51 100% 50%; /* #FFD700 - Gold */
     --primary-foreground: 355.7 100% 97.3%;
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
@@ -80,94 +80,107 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Vibrant dark theme for social feel */
-    --background: 230 20% 10%;
-    --foreground: 0 0% 98%;
+    /* 2025 Design System - No Gradients, Solid Colors Only */
+    /* Primary #FF6347 (Tomato red for energy/buttons) */
+    /* Accent #00BFFF (Deep sky blue for links/accents) */
+    /* Neutral #121212 (Dark gray for backgrounds) */
+    /* Success #32CD32 (Lime green for mint/success) */
+    /* Warning #FFD700 (Gold for sales/alerts) */
 
-    --card: 230 18% 12%;
-    --card-foreground: 0 0% 98%;
+    --background: 0 0% 7%; /* #121212 */
+    --foreground: 0 0% 100%; /* #FFFFFF */
 
-    --popover: 230 18% 12%;
-    --popover-foreground: 0 0% 98%;
+    --card: 0 0% 12%; /* #1E1E1E */
+    --card-foreground: 0 0% 100%;
 
-    --primary: 262 83% 60%; /* violet */
+    --popover: 0 0% 12%;
+    --popover-foreground: 0 0% 100%;
+
+    --primary: 9 100% 64%; /* #FF6347 Tomato red */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 20%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 0 0% 20%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 230 12% 20%;
-    --muted-foreground: 230 10% 70%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 70%;
 
-    --accent: 330 81% 60%; /* pink */
+    --accent: 195 100% 50%; /* #00BFFF Deep sky blue */
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 230 14% 22%;
-    --input: 230 14% 22%;
-    --ring: 262 83% 60%;
+    --success: 120 61% 50%; /* #32CD32 Lime green */
+    --success-foreground: 0 0% 100%;
+
+    --warning: 51 100% 50%; /* #FFD700 Gold */
+    --warning-foreground: 0 0% 0%;
+
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 9 100% 64%;
 
     --radius: 0.75rem;
 
-    /* Sidebar (if used) */
-    --sidebar-background: 230 20% 12%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 262 83% 60%;
+    /* Sidebar */
+    --sidebar-background: 0 0% 7%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 9 100% 64%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 330 81% 60%;
+    --sidebar-accent: 195 100% 50%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 230 14% 22%;
-    --sidebar-ring: 262 83% 60%;
+    --sidebar-border: 0 0% 20%;
+    --sidebar-ring: 9 100% 64%;
 
-    /* Gradients and effects */
-    --gradient-app-bg: linear-gradient(180deg, hsl(262 60% 16%) 0%, hsl(230 25% 12%) 50%, hsl(220 25% 10%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(230 18% 14%) 0%, hsl(230 18% 12%) 100%);
+    /* No gradients - solid colors only */
     --shadow-elev: 0 10px 30px -10px hsl(var(--primary) / 0.3);
   }
 
   .dark {
-    /* Keep same palette for now since app is dark-first */
-    --background: 230 20% 10%;
-    --foreground: 0 0% 98%;
+    /* Dark mode - same as light mode since app is dark-first */
+    --background: 0 0% 7%;
+    --foreground: 0 0% 100%;
 
-    --card: 230 18% 12%;
-    --card-foreground: 0 0% 98%;
+    --card: 0 0% 12%;
+    --card-foreground: 0 0% 100%;
 
-    --popover: 230 18% 12%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 0 0% 12%;
+    --popover-foreground: 0 0% 100%;
 
-    --primary: 262 83% 60%;
+    --primary: 9 100% 64%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 20%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 0 0% 20%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 230 12% 20%;
-    --muted-foreground: 230 10% 70%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 70%;
 
-    --accent: 330 81% 60%;
+    --accent: 195 100% 50%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 230 14% 22%;
-    --input: 230 14% 22%;
-    --ring: 262 83% 60%;
+    --success: 120 61% 50%;
+    --success-foreground: 0 0% 100%;
 
-    --sidebar-background: 230 20% 12%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 262 83% 60%;
+    --warning: 51 100% 50%;
+    --warning-foreground: 0 0% 0%;
+
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 9 100% 64%;
+
+    --sidebar-background: 0 0% 7%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 9 100% 64%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 330 81% 60%;
+    --sidebar-accent: 195 100% 50%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 230 14% 22%;
-    --sidebar-ring: 262 83% 60%;
-
-    --gradient-app-bg: linear-gradient(180deg, hsl(262 60% 16%) 0%, hsl(230 25% 12%) 50%, hsl(220 25% 10%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(230 18% 14%) 0%, hsl(230 18% 12%) 100%);
+    --sidebar-border: 0 0% 20%;
+    --sidebar-ring: 9 100% 64%;
   }
 }
 
@@ -178,6 +191,64 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
-    background: var(--gradient-app-bg);
+    /* No gradients - solid background only */
   }
+}
+
+/* Custom animations for 2025 design */
+@layer utilities {
+  .animate-morph {
+    animation: morph 2s ease-in-out infinite alternate;
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s linear infinite;
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.5s ease-out;
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.6s ease-out;
+  }
+
+  .animate-scale-in {
+    animation: scale-in 0.3s ease-out;
+  }
+}
+
+@keyframes morph {
+  0% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.05) rotate(2deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px hsl(var(--primary) / 0.3); }
+  50% { box-shadow: 0 0 40px hsl(var(--primary) / 0.6); }
+}
+
+@keyframes slide-up {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }

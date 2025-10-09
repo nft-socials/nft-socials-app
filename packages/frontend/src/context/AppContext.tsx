@@ -1,16 +1,19 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
 import { useAccount } from '@starknet-react/core';
-import { getAllPosts, canUserPostToday, getUserPosts, getSwapProposals, createDailyPost, proposeSwap as proposeSwapOnChain, acceptSwap as acceptSwapOnChain, rejectSwap as rejectSwapOnChain } from '@/services/contract';
+import { getAllPosts, canUserPostToday, getUserPosts, getSellProposals, createPost, proposeSell as proposeSellOnChain, acceptSell as acceptSellOnChain, rejectSell as rejectSellOnChain } from '@/services/contract';
 import { FEED_PAGE_SIZE } from '@/utils/constants';
 import { storeOnIPFS } from '@/services/ipfs';
 
 interface Post {
   tokenId: string;
   author: string;
+  currentOwner: string;
   contentHash: string;
   content: string;
   timestamp: number;
   isSwappable: boolean;
+  price: number;
+  isForSale?: boolean;
   isOwnedByUser?: boolean;
   isCreatedByUser?: boolean;
 }
@@ -134,13 +137,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       dispatch({ type: 'SET_LOADING', payload: true });
       try {
         const posts = await getAllPosts(0, FEED_PAGE_SIZE);
+        console.log('Fetched posts from contract:', posts);
         dispatch({ type: 'SET_POSTS', payload: posts });
 
         if (address) {
           const [canPost, userPosts, proposals] = await Promise.all([
             canUserPostToday(address),
             getUserPosts(address),
-            getSwapProposals(address),
+            getSellProposals(address),
           ]);
           dispatch({ type: 'SET_HAS_POSTED_TODAY', payload: !canPost });
           dispatch({ type: 'SET_USER_POSTS', payload: userPosts });
@@ -171,7 +175,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       const contentHash = await storeOnIPFS(metadata);  
 //       console.log({ contentHash, content})
 // return;
-      const val = await createDailyPost(account, contentHash);
+      const val = await createPost(account, contentHash, 0);
 
       // Refresh data after successful tx
       await Promise.all([refreshFeed(), refreshUserData()]);
@@ -185,29 +189,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
-  const proposeSwap = async (targetTokenId: string, myTokenId: string) => {
-    if (!account) return;
-    await proposeSwapOnChain(account, myTokenId, targetTokenId);
-    await refreshUserData();
-  };
-
-  const acceptSwap = async (proposalId: string) => {
-    if (!account) return;
-    await acceptSwapOnChain(account, proposalId);
-    dispatch({ type: 'REMOVE_SWAP_PROPOSAL', payload: proposalId });
-    await refreshUserData();
-  };
-
-  const rejectSwap = async (proposalId: string) => {
-    if (!account) return;
-    await rejectSwapOnChain(account, proposalId);
-    dispatch({ type: 'REMOVE_SWAP_PROPOSAL', payload: proposalId });
-  };
-
   const refreshFeed = async () => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       const posts = await getAllPosts(0, FEED_PAGE_SIZE);
+      console.log('Refreshed posts from contract:', posts);
       dispatch({ type: 'SET_POSTS', payload: posts });
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: 'Failed to load feed' });
@@ -220,7 +206,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (!address) return;
     const [userPosts, proposals] = await Promise.all([
       getUserPosts(address),
-      getSwapProposals(address),
+      getSellProposals(address),
     ]);
     dispatch({ type: 'SET_USER_POSTS', payload: userPosts });
     dispatch({ type: 'SET_SWAP_PROPOSALS', payload: proposals });
@@ -230,9 +216,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     state,
     dispatch,
     createPost,
-    proposeSwap,
-    acceptSwap,
-    rejectSwap,
     refreshFeed,
     refreshUserData,
   };
