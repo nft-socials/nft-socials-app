@@ -1,15 +1,21 @@
 use starknet::{ContractAddress};
 use core::byte_array::ByteArray;
 
+// ERC20 interface for STRK token
+#[starknet::interface]
+pub trait IERC20<TContractState> {
+    fn transfer_from(ref self: TContractState, sender: ContractAddress, recipient: ContractAddress, amount: u256) -> bool;
+    fn balance_of(self: @TContractState, account: ContractAddress) -> u256;
+    fn allowance(self: @TContractState, owner: ContractAddress, spender: ContractAddress) -> u256;
+}
+
 #[starknet::interface]
 pub trait IOnePostDaily<TContractState> {
     // Post creation
     fn create_post(ref self: TContractState, content_hash: ByteArray, price: u256) -> u256;
 
-    // Sell functions
+    // Sell functions (simplified - no accept/reject)
     fn propose_sell(ref self: TContractState, token_id: u256, price: u256) -> felt252;
-    fn accept_sell(ref self: TContractState, proposal_id: felt252);
-    fn reject_sell(ref self: TContractState, proposal_id: felt252);
     fn cancel_sell(ref self: TContractState, proposal_id: felt252);
     fn buy_post(ref self: TContractState, token_id: u256);
 
@@ -21,6 +27,7 @@ pub trait IOnePostDaily<TContractState> {
     fn is_post_for_sale(self: @TContractState, token_id: u256) -> bool;
     fn get_post_price(self: @TContractState, token_id: u256) -> u256;
     fn get_all_posts_for_sale(self: @TContractState, offset: u32, limit: u32) -> Array<Post>;
+    fn get_user_sold_nfts(self: @TContractState, user: ContractAddress) -> Array<u256>;
 
     // ERC721 functions
     fn name(self: @TContractState) -> ByteArray;
@@ -70,6 +77,7 @@ pub mod OnePostDaily {
     use core::byte_array::ByteArray;
     use core::byte_array::ByteArrayTrait;
     use core::num::traits::Zero;
+    use super::{IERC20Dispatcher, IERC20DispatcherTrait};
 
     #[storage]
     struct Storage {
@@ -97,6 +105,13 @@ pub mod OnePostDaily {
         user_posts: Map<(ContractAddress, u32), u256>, // user -> index -> token_id
         user_post_count: Map<ContractAddress, u32>,
 
+        // STRK token integration
+        strk_token_address: ContractAddress,
+
+        // Sold NFTs tracking (Solution 2)
+        user_sold_nfts: Map<(ContractAddress, u32), u256>, // user -> index -> token_id
+        user_sold_nft_count: Map<ContractAddress, u32>,
+
         // Creator royalties (5% default)
         royalty_percentage: u256,
     }
@@ -107,8 +122,6 @@ pub mod OnePostDaily {
         PostCreated: PostCreated,
         PostListedForSale: PostListedForSale,
         SellProposed: SellProposed,
-        SellAccepted: SellAccepted,
-        SellRejected: SellRejected,
         SellCancelled: SellCancelled,
         PostSold: PostSold,
         Transfer: Transfer,
@@ -148,24 +161,7 @@ pub mod OnePostDaily {
         price: u256,
     }
 
-    #[derive(Drop, starknet::Event)]
-    struct SellAccepted {
-        #[key]
-        proposal_id: felt252,
-        #[key]
-        token_id: u256,
-        #[key]
-        seller: ContractAddress,
-        #[key]
-        buyer: ContractAddress,
-        price: u256,
-    }
 
-    #[derive(Drop, starknet::Event)]
-    struct SellRejected {
-        #[key]
-        proposal_id: felt252,
-    }
 
     #[derive(Drop, starknet::Event)]
     struct SellCancelled {
@@ -218,12 +214,13 @@ pub mod OnePostDaily {
     const ROYALTY_PERCENTAGE: u256 = 500; // 5% in basis points (500/10000)
 
     #[constructor]
-    fn constructor(ref self: ContractState) {
+    fn constructor(ref self: ContractState, strk_token_address: ContractAddress) {
         self.name.write("NFT Social Posts");
         self.symbol.write("NSP");
         self.token_counter.write(1);
         self.proposal_counter.write(1);
         self.royalty_percentage.write(ROYALTY_PERCENTAGE);
+        self.strk_token_address.write(strk_token_address);
     }
 
     #[abi(embed_v0)]
@@ -333,71 +330,7 @@ pub mod OnePostDaily {
             proposal_id
         }
 
-        fn accept_sell(ref self: ContractState, proposal_id: felt252) {
-            let caller = get_caller_address();
-            let current_time = get_block_timestamp();
-            let proposal = self.sell_proposals.read(proposal_id);
 
-            assert(proposal.is_active, 'Proposal not active');
-            assert(proposal.seller != caller, 'Cannot buy own post');
-            assert(current_time <= proposal.expiration, 'Proposal expired');
-
-            // Verify token is still owned by seller and for sale
-            let post = self.posts.read(proposal.token_id);
-            assert(post.current_owner == proposal.seller, 'Seller no longer owns token');
-            assert(post.is_for_sale, 'Post not for sale');
-            assert(post.price == proposal.price, 'Price mismatch');
-
-            // Calculate royalty for original creator (if not primary sale)
-            let royalty_amount = if post.author != proposal.seller {
-                (proposal.price * self.royalty_percentage.read()) / 10000
-            } else {
-                0
-            };
-
-            // Execute sale - transfer NFT
-            self._transfer(proposal.seller, caller, proposal.token_id);
-
-            // Update post status (re-read after transfer to preserve updated ownership)
-            let mut updated_post = self.posts.read(proposal.token_id);
-            updated_post.is_for_sale = false;
-            updated_post.price = 0;
-            self.posts.write(proposal.token_id, updated_post);
-
-            // Deactivate proposal
-            let mut updated_proposal = proposal;
-            updated_proposal.is_active = false;
-            updated_proposal.buyer = caller;
-            self.sell_proposals.write(proposal_id, updated_proposal);
-
-            self.emit(SellAccepted {
-                proposal_id,
-                token_id: proposal.token_id,
-                seller: proposal.seller,
-                buyer: caller,
-                price: proposal.price,
-            });
-
-            self.emit(PostSold {
-                token_id: proposal.token_id,
-                seller: proposal.seller,
-                buyer: caller,
-                price: proposal.price,
-                royalty_paid: royalty_amount,
-            });
-        }
-
-        fn reject_sell(ref self: ContractState, proposal_id: felt252) {            
-            let mut proposal = self.sell_proposals.read(proposal_id);
-
-            assert(proposal.is_active, 'Proposal not active');
-            // Anyone can reject a sell proposal (buyer rejecting)
-
-            proposal.is_active = false;
-            self.sell_proposals.write(proposal_id, proposal);
-
-            self.emit(SellRejected { proposal_id });
-        }
 
         fn cancel_sell(ref self: ContractState, proposal_id: felt252) {
             let caller = get_caller_address();
@@ -436,6 +369,20 @@ pub mod OnePostDaily {
                 0
             };
 
+            // Transfer STRK tokens
+            let mut strk_token = IERC20Dispatcher { contract_address: self.strk_token_address.read() };
+
+            // Transfer royalty to original author if applicable
+            if royalty_amount > 0 {
+                strk_token.transfer_from(caller, post.author, royalty_amount);
+            }
+
+            // Transfer remaining amount to seller
+            let seller_amount = price - royalty_amount;
+            if seller_amount > 0 {
+                strk_token.transfer_from(caller, seller, seller_amount);
+            }
+
             // Execute sale - transfer NFT
             self._transfer(seller, caller, token_id);
 
@@ -444,6 +391,11 @@ pub mod OnePostDaily {
             updated_post.is_for_sale = false;
             updated_post.price = 0;
             self.posts.write(token_id, updated_post);
+
+            // Add to seller's sold NFTs list
+            let sold_count = self.user_sold_nft_count.read(seller);
+            self.user_sold_nfts.write((seller, sold_count), token_id);
+            self.user_sold_nft_count.write(seller, sold_count + 1);
 
             self.emit(PostSold {
                 token_id,
@@ -534,6 +486,20 @@ pub mod OnePostDaily {
             };
 
             posts
+        }
+
+        fn get_user_sold_nfts(self: @ContractState, user: ContractAddress) -> Array<u256> {
+            let mut sold_nfts = ArrayTrait::new();
+            let count = self.user_sold_nft_count.read(user);
+
+            let mut i = 0_u32;
+            while i < count {
+                let token_id = self.user_sold_nfts.read((user, i));
+                sold_nfts.append(token_id);
+                i += 1;
+            };
+
+            sold_nfts
         }
 
         // ERC721 Implementation

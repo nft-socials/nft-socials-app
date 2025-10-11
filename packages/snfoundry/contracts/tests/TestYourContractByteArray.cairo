@@ -301,45 +301,6 @@ fn test_accept_sell_proposal() {
 }
 
 #[test]
-#[should_panic(expected: ('Cannot buy own post',))]
-fn test_accept_sell_own_proposal() {
-    let contract = deploy_contract();
-    let alice = get_alice_address();
-
-    start_cheat_caller_address(contract.contract_address, alice);
-    let content_hash: ByteArray = "QmTestOwnAccept";
-    let token_id = contract.create_post(content_hash, 0);
-    let proposal_id = contract.propose_sell(token_id, 1000000000000000000);
-
-    // Alice tries to accept her own proposal - should panic
-    contract.accept_sell(proposal_id);
-    stop_cheat_caller_address(contract.contract_address);
-}
-
-#[test]
-fn test_reject_sell_proposal() {
-    let contract = deploy_contract();
-    let alice = get_alice_address();
-    let bob = get_bob_address();
-
-    // Alice creates a post and proposes to sell
-    start_cheat_caller_address(contract.contract_address, alice);
-    let content_hash: ByteArray = "QmTestReject";
-    let token_id = contract.create_post(content_hash, 0);
-    let proposal_id = contract.propose_sell(token_id, 1000000000000000000);
-    stop_cheat_caller_address(contract.contract_address);
-
-    // Bob rejects the sell proposal
-    start_cheat_caller_address(contract.contract_address, bob);
-    contract.reject_sell(proposal_id);
-    stop_cheat_caller_address(contract.contract_address);
-
-    // Post should still be for sale (rejection doesn't remove from sale)
-    let post = contract.get_post_by_token_id(token_id);
-    assert(post.is_for_sale, 'Post should still be for sale');
-}
-
-#[test]
 fn test_secondary_sale_with_royalty() {
     let contract = deploy_contract();
     let alice = get_alice_address(); // Original creator

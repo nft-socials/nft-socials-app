@@ -27,10 +27,8 @@ trait IOnePostDaily<TContractState> {
     // Core functionality
     fn create_post(ref self: TContractState, content_hash: ByteArray, price: u256) -> u256;
 
-    // Sell functions
+    // Sell functions (simplified - no accept/reject)
     fn propose_sell(ref self: TContractState, token_id: u256, price: u256) -> felt252;
-    fn accept_sell(ref self: TContractState, proposal_id: felt252);
-    fn reject_sell(ref self: TContractState, proposal_id: felt252);
     fn cancel_sell(ref self: TContractState, proposal_id: felt252);
     fn buy_post(ref self: TContractState, token_id: u256);
 
@@ -42,6 +40,7 @@ trait IOnePostDaily<TContractState> {
     fn is_post_for_sale(self: @TContractState, token_id: u256) -> bool;
     fn get_post_price(self: @TContractState, token_id: u256) -> u256;
     fn get_all_posts_for_sale(self: @TContractState, offset: u32, limit: u32) -> Array<Post>;
+    fn get_user_sold_nfts(self: @TContractState, user: ContractAddress) -> Array<u256>;
 
     // ERC721 functions
     fn name(self: @TContractState) -> ByteArray;

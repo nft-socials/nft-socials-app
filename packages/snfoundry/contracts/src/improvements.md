@@ -113,3 +113,22 @@ Add event emission in the smart contract for NFT sales
 Query past events from the blockchain to get accurate sold NFT history
 Store this data properly instead of relying on localStorage or ownership assumptions
 This would require smart contract changes and event indexing implementation.
+
+
+
+
+
+
+
+New improvements
+
+Contract update
+- no need for accepting and rejecting sell
+- add transfer of strk for buying of posts, and setting proposal price to be in strk
+
+for sold nfts, solution one is
+Add event emission in the smart contract for NFT sales
+Query past events from the blockchain to get accurate sold NFT history
+
+solution two is to have a mapping of a user to their sold nfts
+Choose the best solution
