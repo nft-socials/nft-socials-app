@@ -7,7 +7,7 @@ const deployedContracts = {
   sepolia: {
     OnePostDaily: {
       address:
-        "0x35869ee4ffeef50da3e0f6e86eacee05fae913628435884309b44f30261c81f",
+        "0x3feccb100b5627b1ce50e402313db5857097b6e587d48133764eb05696a0cba",
       abi: [
         {
           type: "impl",
@@ -174,30 +174,6 @@ const deployedContracts = {
             },
             {
               type: "function",
-              name: "accept_sell",
-              inputs: [
-                {
-                  name: "proposal_id",
-                  type: "core::felt252",
-                },
-              ],
-              outputs: [],
-              state_mutability: "external",
-            },
-            {
-              type: "function",
-              name: "reject_sell",
-              inputs: [
-                {
-                  name: "proposal_id",
-                  type: "core::felt252",
-                },
-              ],
-              outputs: [],
-              state_mutability: "external",
-            },
-            {
-              type: "function",
               name: "cancel_sell",
               inputs: [
                 {
@@ -336,6 +312,22 @@ const deployedContracts = {
               outputs: [
                 {
                   type: "core::array::Array::<contracts::YourContractByteArray::Post>",
+                },
+              ],
+              state_mutability: "view",
+            },
+            {
+              type: "function",
+              name: "get_user_sold_nfts",
+              inputs: [
+                {
+                  name: "user",
+                  type: "core::starknet::contract_address::ContractAddress",
+                },
+              ],
+              outputs: [
+                {
+                  type: "core::array::Array::<core::integer::u256>",
                 },
               ],
               state_mutability: "view",
@@ -503,7 +495,12 @@ const deployedContracts = {
         {
           type: "constructor",
           name: "constructor",
-          inputs: [],
+          inputs: [
+            {
+              name: "strk_token_address",
+              type: "core::starknet::contract_address::ContractAddress",
+            },
+          ],
         },
         {
           type: "event",
@@ -588,50 +585,6 @@ const deployedContracts = {
               name: "price",
               type: "core::integer::u256",
               kind: "data",
-            },
-          ],
-        },
-        {
-          type: "event",
-          name: "contracts::YourContractByteArray::OnePostDaily::SellAccepted",
-          kind: "struct",
-          members: [
-            {
-              name: "proposal_id",
-              type: "core::felt252",
-              kind: "key",
-            },
-            {
-              name: "token_id",
-              type: "core::integer::u256",
-              kind: "key",
-            },
-            {
-              name: "seller",
-              type: "core::starknet::contract_address::ContractAddress",
-              kind: "key",
-            },
-            {
-              name: "buyer",
-              type: "core::starknet::contract_address::ContractAddress",
-              kind: "key",
-            },
-            {
-              name: "price",
-              type: "core::integer::u256",
-              kind: "data",
-            },
-          ],
-        },
-        {
-          type: "event",
-          name: "contracts::YourContractByteArray::OnePostDaily::SellRejected",
-          kind: "struct",
-          members: [
-            {
-              name: "proposal_id",
-              type: "core::felt252",
-              kind: "key",
             },
           ],
         },
@@ -766,16 +719,6 @@ const deployedContracts = {
               kind: "nested",
             },
             {
-              name: "SellAccepted",
-              type: "contracts::YourContractByteArray::OnePostDaily::SellAccepted",
-              kind: "nested",
-            },
-            {
-              name: "SellRejected",
-              type: "contracts::YourContractByteArray::OnePostDaily::SellRejected",
-              kind: "nested",
-            },
-            {
               name: "SellCancelled",
               type: "contracts::YourContractByteArray::OnePostDaily::SellCancelled",
               kind: "nested",
@@ -804,7 +747,7 @@ const deployedContracts = {
         },
       ],
       classHash:
-        "0x30054af16bb4859ca20c1a61990d790f31f2aeefbec87f996dd4144f8ec4650",
+        "0x124a67bfb6a2214b6bddb3dfe78b671df7544bbbe6948b51a1d4343090a4bcb",
     },
   },
 } as const;

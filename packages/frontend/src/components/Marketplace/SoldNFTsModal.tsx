@@ -105,7 +105,7 @@ const SoldNFTsModal: React.FC = () => {
                       ? parseFloat(nft.price.split(' ')[0])
                       : (nft.price / 1e18);
                   return sum + price;
-                }, 0).toFixed(4)} ETH
+                }, 0).toFixed(4)} STRK
               </div>
               <div className="text-sm text-muted-foreground">Total Volume</div>
             </Card>
@@ -118,7 +118,7 @@ const SoldNFTsModal: React.FC = () => {
                       ? parseFloat(nft.price.split(' ')[0])
                       : (nft.price / 1e18);
                   return sum + price;
-                }, 0) / soldNFTs.length).toFixed(4) : '0'} ETH
+                }, 0) / soldNFTs.length).toFixed(4) : '0'} STRK
               </div>
               <div className="text-sm text-muted-foreground">Avg. Price</div>
             </Card>
@@ -182,7 +182,7 @@ const SoldNFTsModal: React.FC = () => {
                           {nft.isCurrentlyForSale && (
                             <div className="flex items-center gap-1 text-green-600">
                               <TrendingUp className="w-3 h-3 flex-shrink-0" />
-                              <span className="truncate">Currently for sale: {typeof nft.currentPrice === 'number' ? `${(nft.currentPrice / 1e18).toFixed(4)} ETH` : nft.currentPrice}</span>
+                              <span className="truncate">Currently for sale: {typeof nft.currentPrice === 'number' ? `${(nft.currentPrice / 1e18).toFixed(4)} STRK` : nft.currentPrice}</span>
                             </div>
                           )}
                         </div>
@@ -192,10 +192,10 @@ const SoldNFTsModal: React.FC = () => {
                         <div className="flex items-center gap-1 text-lg font-bold text-green-600 mb-2">
                           <DollarSign className="w-4 h-4" />
                           {typeof nft.salePrice === 'number' && nft.salePrice > 0
-                            ? `${(nft.salePrice / 1e18).toFixed(4)} ETH`
+                            ? `${(nft.salePrice / 1e18).toFixed(4)} STRK`
                             : typeof nft.price === 'string'
                               ? nft.price
-                              : `${(nft.price / 1e18).toFixed(4)} ETH`
+                              : `${(nft.price / 1e18).toFixed(4)} STRK`
                           }
                         </div>
                         <Button

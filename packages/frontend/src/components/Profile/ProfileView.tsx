@@ -2,10 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Gem, ExternalLink } from 'lucide-react';
+import { Gem, ExternalLink, RefreshCw } from 'lucide-react';
 import { useAppContext } from '@/context/AppContext';
 import { useAccount } from '@starknet-react/core';
-import { cancelSell, getAllPosts } from '@/services/contract';
+import { cancelSell, getAllPosts, getSoldNFTs, getUserSoldNFTs } from '@/services/contract';
 import PostCard from '@/components/Feed/PostCard';
 import SellModal from '@/components/Modals/SellModal';
 import { toast } from 'react-hot-toast';
@@ -17,7 +17,7 @@ interface ProfileViewProps {
 }
 
 const ProfileView: React.FC<ProfileViewProps> = ({ isConnected, onNavigate }) => {
-  const { state, refreshUserData, acceptSwap, rejectSwap } = useAppContext();
+  const { state, refreshUserData } = useAppContext();
   const { address, account } = useAccount();
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
@@ -25,6 +25,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({ isConnected, onNavigate }) =>
   const [selectedPostForSell, setSelectedPostForSell] = useState<Post | null>(null);
   const [allUserNFTs, setAllUserNFTs] = useState<Post[]>([]);
   const [isLoadingNFTs, setIsLoadingNFTs] = useState(false);
+  const [soldNFTs, setSoldNFTs] = useState<any[]>([]);
+  const [isLoadingSoldNFTs, setIsLoadingSoldNFTs] = useState(false);
 
   const fetchAllUserNFTs = async () => {
     if (!address) return;
@@ -45,10 +47,32 @@ const ProfileView: React.FC<ProfileViewProps> = ({ isConnected, onNavigate }) =>
     }
   };
 
+  const fetchSoldNFTs = async () => {
+    if (!address) return;
+
+    setIsLoadingSoldNFTs(true);
+    try {
+      // Get sold NFTs from localStorage (where we track sales)
+      const allSoldNFTs = await getUserSoldNFTs(address);
+      console.log(allSoldNFTs)
+      // Filter to only show NFTs sold by the current user
+      // const userSoldNFTs = allSoldNFTs.filter(nft =>
+      //   nft.author && nft.author.toLowerCase() === address.toLowerCase()
+      // );
+      setSoldNFTs(allSoldNFTs);
+    } catch (error) {
+      console.error('Failed to load sold NFTs:', error);
+      toast.error('Failed to load sold NFTs');
+    } finally {
+      setIsLoadingSoldNFTs(false);
+    }
+  };
+
   useEffect(() => {
     if (isConnected && address) {
       // Only fetch user NFTs, don't call refreshUserData to avoid conflicts
       fetchAllUserNFTs();
+      fetchSoldNFTs();
     }
   }, [isConnected, address]);
 
@@ -76,9 +100,11 @@ const ProfileView: React.FC<ProfileViewProps> = ({ isConnected, onNavigate }) =>
   };
 
   const handleSellSuccess = (post: Post, price: string) => {
-    toast.success(`� NFT #${post.tokenId} listed for ${price} ETH!`);
+    toast.success(`🎉 NFT #${post.tokenId} listed for ${price} STRK!`);
     // Refresh user data to update the post status
     refreshUserData();
+    // Also refresh local NFTs
+    fetchAllUserNFTs();
   };
 
   const handleCancelSell = async (post: Post) => {
@@ -118,6 +144,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({ isConnected, onNavigate }) =>
     );
   }
 
+  console.log({soldNFTs})
+
   return (
     <Card className="bg-card/60 border-border/60 md:mt-10">
       <CardHeader>
@@ -126,24 +154,39 @@ const ProfileView: React.FC<ProfileViewProps> = ({ isConnected, onNavigate }) =>
             <Gem className="w-5 h-5 text-primary animate-pulse" />
             Profile
           </CardTitle>
-          {onNavigate && (
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onNavigate('user-nfts')}
+              onClick={() => {
+                fetchAllUserNFTs();
+                fetchSoldNFTs();
+              }}
+              disabled={isLoadingNFTs || isLoadingSoldNFTs}
               className="flex items-center gap-2"
             >
-              <ExternalLink className="w-4 h-4" />
-              View All NFTs
+              <RefreshCw className={`w-4 h-4 ${(isLoadingNFTs || isLoadingSoldNFTs) ? 'animate-spin' : ''}`} />
+              Refresh
             </Button>
-          )}
+            {onNavigate && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onNavigate('user-nfts')}
+                className="flex items-center gap-2"
+              >
+                <ExternalLink className="w-4 h-4" />
+                View All NFTs
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="nfts">
           <TabsList className="mb-4">
             <TabsTrigger value="nfts">My NFTs ({allUserNFTs.length})</TabsTrigger>
-            <TabsTrigger value="requests">Pending Requests ({state.swapProposals.length})</TabsTrigger>
+            <TabsTrigger value="sold">My Sold NFTs ({soldNFTs.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="nfts">
@@ -172,23 +215,32 @@ const ProfileView: React.FC<ProfileViewProps> = ({ isConnected, onNavigate }) =>
             )}
           </TabsContent>
 
-          <TabsContent value="requests">
-            {state.swapProposals.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">No pending requests.</div>
+          <TabsContent value="sold">
+            {isLoadingSoldNFTs ? (
+              <div className="text-center py-8 text-muted-foreground">Loading sold NFTs...</div>
+            ) : soldNFTs.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">No NFTs sold yet.</div>
             ) : (
               <div className="space-y-3">
-                {state.swapProposals.map((sp) => (
-                  <Card key={String((sp as any).id)} className="bg-muted/40 border-border/50">
-                    <CardContent className="pt-4 flex items-center justify-between gap-3">
+                {soldNFTs.map((nft) => (
+                  <Card key={nft.tokenId} className="bg-muted/40 border-border/50">
+                    <CardContent className="pb-4 pt-4 flex items-center justify-between gap-3">
                       <div className="text-sm">
-                        <div className="font-medium">Swap Proposal</div>
-                        <div className="text-muted-foreground text-xs">
-                          Their #{String((sp as any).initiator_token_id)} ↔ Your #{String((sp as any).target_token_id)}
+                        <div className="font-medium">NFT #{nft}</div>
+                        <div className="text-muted-foreground text-xs hidden">
+                          Sold for {typeof nft.salePrice === 'number' ? (nft.salePrice / 1e18).toFixed(4) : 'N/A'} STRK
                         </div>
+                        <div className="text-muted-foreground text-xs hidden">
+                          Sold on {new Date(nft.soldAt || nft.timestamp).toLocaleDateString()}
+                        </div>
+                        {nft.buyer && (
+                          <div className="text-muted-foreground text-xs">
+                            Buyer: {nft.buyer.slice(0, 6)}...{nft.buyer.slice(-4)}
+                          </div>
+                        )}
                       </div>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="secondary" onClick={() => acceptSwap(String((sp as any).id))}>Accept</Button>
-                        <Button size="sm" variant="outline" onClick={() => rejectSwap(String((sp as any).id))}>Reject</Button>
+                      <div className="text-xs text-muted-foreground">
+                        Sold
                       </div>
                     </CardContent>
                   </Card>

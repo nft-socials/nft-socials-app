@@ -132,7 +132,6 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ isLoading, posts, onRefre
       toast.success(`Chat info saved. Navigate to Chats to continue.`);
     }
   };
-
   return (
     <div className="space-y-4 md:mt-10">
       <Card className="p-4 bg-card border-border">

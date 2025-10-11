@@ -36,17 +36,17 @@ const SellModal: React.FC<SellModalProps> = ({ isOpen, onClose, post, onSellSucc
       setIsLoading(true);
       toast.loading('Preparing sell transaction...');
 
-      // Convert ETH to Wei (multiply by 10^18) and ensure it's a proper integer
-      const priceInWei = BigInt(Math.floor(priceValue * 1e18));
+      // Convert STRK to smallest unit (multiply by 10^18) and ensure it's a proper integer
+      const priceInStrkUnits = BigInt(Math.floor(priceValue * 1e18));
 
       console.log('Selling NFT:', {
         tokenId: post.tokenId,
-        priceETH: priceValue,
-        priceWei: priceInWei.toString(),
+        priceSTRK: priceValue,
+        priceStrkUnits: priceInStrkUnits.toString(),
         account: account.address
       });
 
-      const txHash = await proposeSell(account, post.tokenId, Number(priceInWei));
+      const txHash = await proposeSell(account, post.tokenId, Number(priceInStrkUnits));
 
       console.log('Sell transaction hash:', txHash);
 
@@ -127,15 +127,15 @@ const SellModal: React.FC<SellModalProps> = ({ isOpen, onClose, post, onSellSucc
           <div className="space-y-2">
             <Label htmlFor="price" className="text-sm font-medium flex items-center gap-2">
               <DollarSign className="w-4 h-4" />
-              Sale Price (ETH)
+              Sale Price (STRK)
             </Label>
             <div className="relative">
               <Input
                 id="price"
                 type="number"
-                step="0.001"
+                step="0.1"
                 min="0"
-                placeholder="0.1"
+                placeholder="10"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 className="pl-8"
@@ -144,7 +144,7 @@ const SellModal: React.FC<SellModalProps> = ({ isOpen, onClose, post, onSellSucc
               <DollarSign className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             </div>
             <p className="text-xs text-muted-foreground">
-              Minimum: 0.001 ETH • Your NFT will be listed on the marketplace
+              Minimum: 0.1 STRK • Your NFT will be listed on the marketplace
             </p>
           </div>
 

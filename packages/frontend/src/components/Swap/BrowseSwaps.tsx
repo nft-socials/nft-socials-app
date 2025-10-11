@@ -16,7 +16,7 @@ import SellModal from '@/components/Modals/SellModal';
 import { toast } from 'react-hot-toast';
 
 const BrowseSwaps: React.FC = () => {
-  const { state, proposeSwap } = useAppContext();
+  const { state } = useAppContext();
   const { address, account } = useAccount();
   const { toast: toastUI } = useToast();
 
@@ -57,14 +57,9 @@ const BrowseSwaps: React.FC = () => {
   };
 
   const handlePropose = async () => {
-    if (!targetTokenId || !mySelectedTokenId) return;
-    try {
-      await proposeSwap(targetTokenId, mySelectedTokenId);
-      toastUI({ title: 'Swap proposed', description: `Proposed swap: yours ${mySelectedTokenId} ↔ target ${targetTokenId}` });
-      setDialogOpen(false);
-    } catch (err) {
-      toastUI({ title: 'Failed to propose swap', description: 'Please try again', variant: 'destructive' as any });
-    }
+    // Swap functionality has been removed - direct buying only
+    toast('Swap functionality has been simplified to direct buying. Use the Buy button instead.', { icon: 'ℹ️' });
+    setDialogOpen(false);
   };
 
   const handleLike = (post: Post) => {
@@ -104,7 +99,7 @@ const BrowseSwaps: React.FC = () => {
   };
 
   const handleSellSuccess = (post: Post, price: string) => {
-    toast.success(`🎉 NFT #${post.tokenId} listed for ${price} ETH!`);
+    toast.success(`🎉 NFT #${post.tokenId} listed for ${price} STRK!`);
     // Refresh swappable posts
     const load = async () => {
       setLoading(true);
