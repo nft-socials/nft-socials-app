@@ -4,8 +4,6 @@ import { toast } from 'react-hot-toast';
 import {
   createPost,
   proposeSell,
-  acceptSell,
-  rejectSell,
   cancelSell,
   buyPost,
   getAllPosts,
@@ -129,53 +127,7 @@ export const usePostNFT = () => {
     }
   }, [account]);
 
-  // Accept a sell proposal
-  const acceptSellProposal = useCallback(async (proposalId: string): Promise<string | null> => {
-    if (!account) {
-      toast.error('Please connect your wallet first');
-      return null;
-    }
-
-    try {
-      setLoading(true);
-      setError(undefined);
-
-      const txHash = await acceptSell(account, proposalId);
-      toast.success('Purchase completed! ✅');
-      return txHash;
-    } catch (err: unknown) {
-      const errorMessage = (err as Error)?.message || 'Failed to accept sell';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, [account]);
-
-  // Reject a swap proposal
-  const rejectSwapProposal = useCallback(async (proposalId: string): Promise<string | null> => {
-    if (!account) {
-      toast.error('Please connect your wallet first');
-      return null;
-    }
-
-    try {
-      setLoading(true);
-      setError(undefined);
-
-      const txHash = await rejectSell(account, proposalId);
-      toast.success('Swap rejected');
-      return txHash;
-    } catch (err: unknown) {
-      const errorMessage = (err as Error)?.message || 'Failed to reject sell';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, [account]);
+  // Accept and reject sell functions removed - direct buying only
 
   // Buy a post directly
   const buyPostDirect = useCallback(async (tokenId: string): Promise<string | null> => {
@@ -189,12 +141,12 @@ export const usePostNFT = () => {
       setError(undefined);
 
       const txHash = await buyPost(account, tokenId);
-      toast.success('Post purchased successfully! 🎉');
+      // Toast handling is done in buyPost function
       return txHash;
     } catch (err: unknown) {
       const errorMessage = (err as Error)?.message || 'Failed to buy post';
       setError(errorMessage);
-      toast.error(errorMessage);
+      // Error toast is handled in buyPost function
       return null;
     } finally {
       setLoading(false);
@@ -299,8 +251,6 @@ export const usePostNFT = () => {
     ...state,
     mintPost,
     proposePostSell,
-    acceptSellProposal,
-    rejectSellProposal: rejectSwapProposal,
     buyPost: buyPostDirect,
     cancelSellProposal: cancelSellProposalFunc,
     fetchAllPosts,

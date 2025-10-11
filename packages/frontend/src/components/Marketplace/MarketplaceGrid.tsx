@@ -13,6 +13,7 @@ import NFTWalletInfo from '@/components/Info/NFTWalletInfo';
 import SoldNFTsModal from '@/components/Marketplace/SoldNFTsModal';
 import type { Post } from '@/context/AppContext';
 import { useAccount } from '@starknet-react/core';
+import { fileURLToPath } from 'url';
 
 interface MarketplaceGridProps {
   onNavigate?: (tab: string) => void;
@@ -40,7 +41,7 @@ const MarketplaceGrid: React.FC<MarketplaceGridProps> = ({ onNavigate }) => {
       // For marketplace, we primarily want posts for sale
       // But for "my-nfts" filter, we need all posts to show user's NFTs
       // For "sold" filter, we need sold NFTs
-      let fetchedPosts;
+      let fetchedPosts: Post[];
       if (filterType === 'my-nfts' && address) {
         // Get all posts and filter by user
         const allPosts = await getAllPosts(0, 100);
@@ -55,7 +56,14 @@ const MarketplaceGrid: React.FC<MarketplaceGridProps> = ({ onNavigate }) => {
         fetchedPosts = await getAllPostsForSale(0, 50);
       }
 
-      setPosts(fetchedPosts);
+      // Deduplicate posts by tokenId to prevent duplicates from appearing in the UI
+      const postMap = new Map<string, Post>();
+      fetchedPosts.forEach(post => {
+        postMap.set(post.tokenId, post);
+      });
+      const uniquePosts = Array.from(postMap.values());
+
+      setPosts(uniquePosts);
     } catch (error) {
       console.error('Failed to load marketplace posts:', error);
       toast.error('Failed to load marketplace');
@@ -111,36 +119,29 @@ const MarketplaceGrid: React.FC<MarketplaceGridProps> = ({ onNavigate }) => {
     }
 
     try {
-      toast.loading('Processing purchase...');
       const txHash = await buyPost(account, post.tokenId);
-      toast.dismiss();
+      console.log('Purchase successful, transaction hash:', txHash);
       toast.success(`🎉 Successfully purchased NFT #${post.tokenId}!`);
 
-      // Refresh posts to update the marketplace
-      fetchMarketplacePosts();
+      // Update the post locally immediately for better UX
+      setPosts(prevPosts =>
+        prevPosts.map(p =>
+          p.tokenId === post.tokenId
+            ? { ...p, isForSale: false, currentOwner: account.address, price: 0 }
+            : p
+        )
+      );
+
+      // Also refresh from server to ensure consistency
+      setTimeout(() => fetchMarketplacePosts(), 1000);
     } catch (error: any) {
       console.error('Error buying NFT:', error);
-      toast.dismiss();
-
-      // Provide more specific error messages
-      let errorMessage = 'Failed to purchase NFT. Please try again.';
-
-      if (error?.message?.includes('cosigner')) {
-        errorMessage = 'Transaction signing failed. Please check your wallet connection and try again.';
-      } else if (error?.message?.includes('insufficient')) {
-        errorMessage = 'Insufficient funds. Please ensure you have enough ETH to complete the purchase.';
-      } else if (error?.message?.includes('not for sale')) {
-        errorMessage = 'This NFT is no longer for sale.';
-      } else if (error?.message?.includes('rejected')) {
-        errorMessage = 'Transaction was rejected. Please try again.';
-      }
-
-      toast.error(errorMessage);
+      toast.error('Failed to purchase NFT. Please try again.');
     }
   };
 
   const handleSellSuccess = (post: Post, price: string) => {
-    toast.success(`🎉 NFT #${post.tokenId} listed for ${price} ETH!`);
+    toast.success(`🎉 NFT #${post.tokenId} listed for ${price} STRK!`);
     // Refresh posts to update the marketplace
     fetchMarketplacePosts();
   };
@@ -157,8 +158,17 @@ const MarketplaceGrid: React.FC<MarketplaceGridProps> = ({ onNavigate }) => {
       toast.dismiss();
       toast.success(`🎉 Listing canceled for NFT #${post.tokenId}!`);
 
-      // Refresh posts to update the marketplace
-      fetchMarketplacePosts();
+      // Update the post locally immediately for better UX
+      setPosts(prevPosts =>
+        prevPosts.map(p =>
+          p.tokenId === post.tokenId
+            ? { ...p, isForSale: false, price: 0 }
+            : p
+        )
+      );
+
+      // Also refresh from server to ensure consistency
+      setTimeout(() => fetchMarketplacePosts(), 1000);
     } catch (error) {
       console.error('Error canceling listing:', error);
       toast.dismiss();
@@ -215,9 +225,11 @@ const MarketplaceGrid: React.FC<MarketplaceGridProps> = ({ onNavigate }) => {
       default:
         matchesFilter = true;
     }
-
     return matchesSearch && matchesFilter;
   });
+
+  console.log({posts, filteredPosts})
+
 
   return (
     <div className="space-y-6 animate-fade-in md:mt-10">
@@ -303,7 +315,7 @@ const MarketplaceGrid: React.FC<MarketplaceGridProps> = ({ onNavigate }) => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-3">
-          {filteredPosts.map((post) => {
+          {filteredPosts.map((post, i) => {
             const isOwner = address && post.currentOwner.toLowerCase() === address.toLowerCase();
             return (
               <PostCard
@@ -323,7 +335,7 @@ const MarketplaceGrid: React.FC<MarketplaceGridProps> = ({ onNavigate }) => {
                 isForSale={post.isForSale || false}
               />
             );
-          })}
+          })}          
         </div>
       )}
 

@@ -53,7 +53,7 @@ const PostCard: React.FC<PostCardProps> = ({
   // Fetch IPFS metadata to get image and full content
   useEffect(() => {
     const fetchMetadata = async () => {
-      if (post.contentHash && !metadata && !isLoadingMetadata) {
+      if (post.contentHash) {
         setIsLoadingMetadata(true);
         try {
           console.log('Fetching metadata for post:', post.tokenId, 'hash:', post.contentHash);
@@ -67,11 +67,14 @@ const PostCard: React.FC<PostCardProps> = ({
         } finally {
           setIsLoadingMetadata(false);
         }
+      } else {
+        setMetadata(null);
       }
     };
 
     fetchMetadata();
-  }, [post.contentHash, metadata, isLoadingMetadata]);
+  }, [post.contentHash]);
+
   const timeAgo = (timestamp: number) => {
     const now = Date.now();
     const diff = now - timestamp;
@@ -253,7 +256,7 @@ const PostCard: React.FC<PostCardProps> = ({
             <span className="text-nowrap">Nft #{post.tokenId}</span>
             {isForSale && post.price > 0 && (
               <span className="text-primary font-medium tex-nowrap">
-                • {(post.price / 1e18).toFixed(4)} ETH
+                • {(post.price / 1e18).toFixed(2)} STRK
               </span>
             )}
           </div>
@@ -354,7 +357,7 @@ const PostCard: React.FC<PostCardProps> = ({
           title={`NFT #${post.tokenId} - ${truncateAddress(post.author)}`}
         />
       )}
-    </Card>
+     </Card>
   );
 };
 

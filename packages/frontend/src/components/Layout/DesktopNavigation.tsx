@@ -23,7 +23,7 @@ const DesktopNavigation: React.FC<DesktopNavigationProps> = ({
   const navigationItems = [
     { id: 'feed', label: 'Posts', icon: Home },
     { id: 'Chats', label: 'Chats', icon: MessageCircle },
-    { id: 'marketplace', label: 'marketplace', icon: ArrowUpDown },
+    { id: 'marketplace', label: 'Marketplace', icon: ArrowUpDown },
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'notifications', label: 'Notifications', icon: Bell, badge: notificationCount },
   ];

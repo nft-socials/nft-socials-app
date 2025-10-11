@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
 import { useAccount } from '@starknet-react/core';
-import { getAllPosts, canUserPostToday, getUserPosts, getSellProposals, createPost, proposeSell as proposeSellOnChain, acceptSell as acceptSellOnChain, rejectSell as rejectSellOnChain } from '@/services/contract';
+import { getAllPosts, canUserPostToday, getUserPosts, getSellProposals, createPost as createPostOnChain } from '@/services/contract';
 import { FEED_PAGE_SIZE } from '@/utils/constants';
 import { storeOnIPFS } from '@/services/ipfs';
 
@@ -106,9 +106,6 @@ interface AppContextType {
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
   createPost: (content: string) => Promise<void>;
-  proposeSwap: (targetTokenId: string, myTokenId: string) => Promise<void>;
-  acceptSwap: (proposalId: string) => Promise<void>;
-  rejectSwap: (proposalId: string) => Promise<void>;
   refreshFeed: () => Promise<void>;
   refreshUserData: () => Promise<void>;
 }
@@ -137,7 +134,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       dispatch({ type: 'SET_LOADING', payload: true });
       try {
         const posts = await getAllPosts(0, FEED_PAGE_SIZE);
-        console.log('Fetched posts from contract:', posts);
         dispatch({ type: 'SET_POSTS', payload: posts });
 
         if (address) {
@@ -175,7 +171,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       const contentHash = await storeOnIPFS(metadata);  
 //       console.log({ contentHash, content})
 // return;
-      const val = await createPost(account, contentHash, 0);
+      await createPostOnChain(account, contentHash, 0);
 
       // Refresh data after successful tx
       await Promise.all([refreshFeed(), refreshUserData()]);

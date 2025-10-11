@@ -1,6 +1,8 @@
 import { Contract, Provider, AccountInterface } from 'starknet';
 import type { Post as AppPost } from '@/context/AppContext';
 import deployedContracts from '../../contracts/deployedContracts';
+import { universalStrkAddress, strkAbi } from '../../utils/Constants';
+import { toast } from 'react-hot-toast';
 
 // Get contract info from deployedContracts
 const CONTRACT_INFO = deployedContracts.sepolia.OnePostDaily;
@@ -233,24 +235,59 @@ export async function proposeSell(account: AccountInterface, tokenId: string | n
   const priceU256 = price.toString();
 
   const tx = await (contract as any).invoke('propose_sell', [tokenU256, priceU256]);
+
+  // Store the proposal mapping for later cancellation
+  // Note: In a real implementation, we'd get the proposal_id from the transaction result
+  // For now, we'll use a workaround by getting user's sell proposals
+  const proposalMapping = JSON.parse(localStorage.getItem('sellProposals') || '{}');
+  proposalMapping[String(tokenId)] = {
+    tokenId: String(tokenId),
+    price: price,
+    timestamp: Date.now(),
+    txHash: tx?.transaction_hash ?? String(tx)
+  };
+  localStorage.setItem('sellProposals', JSON.stringify(proposalMapping));
+
   return tx?.transaction_hash ?? String(tx);
 }
 
-export async function acceptSell(account: AccountInterface, proposalId: string | number | bigint): Promise<string> {
-  const contract = await getContract(account);
-  const tx = await (contract as any).invoke('accept_sell', [proposalId as any]);
-  return tx?.transaction_hash ?? String(tx);
+// Accept and reject sell functions removed - direct buying only
+
+// Helper function to get user's sell proposals and find proposal_id by token_id
+async function getProposalIdByTokenId(account: AccountInterface, tokenId: string | number | bigint): Promise<string | null> {
+  try {
+    const contract = await getContract(account);
+    const proposals: any[] = await (contract as any).get_sell_proposals(account.address);
+
+    // Find active proposal for this token
+    const proposal = proposals.find(p =>
+      String(p.token_id) === String(tokenId) && p.is_active
+    );
+
+    return proposal ? String(proposal.id) : null;
+  } catch (error) {
+    console.error('Error getting proposal ID:', error);
+    return null;
+  }
 }
 
-export async function rejectSell(account: AccountInterface, proposalId: string | number | bigint): Promise<string> {
-  const contract = await getContract(account);
-  const tx = await (contract as any).invoke('reject_sell', [proposalId as any]);
-  return tx?.transaction_hash ?? String(tx);
-}
+export async function cancelSell(account: AccountInterface, tokenId: string | number | bigint): Promise<string> {
+  // Get the proposal_id for this token
+  const proposalId = await getProposalIdByTokenId(account, tokenId);
 
-export async function cancelSell(account: AccountInterface, proposalId: string | number | bigint): Promise<string> {
+  if (!proposalId) {
+    throw new Error('No active sell proposal found for this NFT');
+  }
+
   const contract = await getContract(account);
-  const tx = await (contract as any).invoke('cancel_sell', [proposalId as any]);
+  // Convert proposalId to proper format for felt252
+  const tx = await (contract as any).invoke('cancel_sell', [proposalId]);
+
+  // Clean up localStorage
+  const proposalMapping = JSON.parse(localStorage.getItem('sellProposals') || '{}');
+  delete proposalMapping[String(tokenId)];
+  localStorage.setItem('sellProposals', JSON.stringify(proposalMapping));
+
   return tx?.transaction_hash ?? String(tx);
 }
 
@@ -258,25 +295,55 @@ export async function buyPost(account: AccountInterface, tokenId: string | numbe
   console.log('Buying post with token ID:', tokenId);
   const contract = await getContract(account);
 
-  // Convert to proper u256 format
-  const tokenU256 = { low: BigInt(tokenId), high: 0n };
+  // Get post price
+  const post = await getPostByTokenId(String(tokenId));
+  const price = BigInt(post.price);
 
-  const tx = await (contract as any).invoke('buy_post', [tokenU256]);
+  // Check STRK balance
+  const strkContract = new Contract(strkAbi, universalStrkAddress, account);
+  const balanceResult = await strkContract.balanceOf(account.address);
+  const balance = BigInt(balanceResult.low || balanceResult);
 
-  // Store sold NFT info in localStorage for tracking
+  console.log('Price:', price.toString(), 'Balance:', balance.toString());
+
+  if (balance < price) {
+    throw new Error(`Insufficient STRK balance. Need ${price} STRK but have ${balance} STRK`);
+  }
+
+  // Convert to strings for serialization
+  const tokenU256 = { low: BigInt(tokenId).toString(), high: '0' };
+  const priceU256 = { low: price.toString(), high: '0' };
+
+  // Execute multicall: approve + buy
+  const multiCall = await account.execute([
+    {
+      contractAddress: universalStrkAddress,
+      entrypoint: 'approve',
+      calldata: [CONTRACT_ADDRESS, priceU256.low, priceU256.high]
+    },
+    {
+      contractAddress: CONTRACT_ADDRESS,
+      entrypoint: 'buy_post',
+      calldata: [tokenU256.low, tokenU256.high]
+    }
+  ]);
+
+  // Store sold NFT info
   const soldNFT = {
     tokenId: String(tokenId),
     buyer: account.address,
     timestamp: Date.now(),
-    transactionHash: tx?.transaction_hash ?? String(tx)
+    transactionHash: multiCall.transaction_hash
   };
 
   const existingSoldNFTs = JSON.parse(localStorage.getItem('soldNFTs') || '[]');
   existingSoldNFTs.push(soldNFT);
   localStorage.setItem('soldNFTs', JSON.stringify(existingSoldNFTs));
 
-  return tx?.transaction_hash ?? String(tx);
+  return multiCall.transaction_hash;
 }
+
+
 
 // Get sold NFTs from localStorage (temporary solution until we can query events)
 export async function getSoldNFTs(): Promise<any[]> {
@@ -310,6 +377,20 @@ export async function getSoldNFTs(): Promise<any[]> {
   }
 }
 
+// Get user's sold NFTs from contract mapping
+export async function getUserSoldNFTs(userAddress: string): Promise<string[]> {
+  console.log('Getting user sold NFTs from contract...');
+  const contract = await getContract();
+
+  try {
+    const soldTokenIds: any[] = await (contract as any).get_user_sold_nfts(userAddress);
+    return soldTokenIds.map(id => String(id));
+  } catch (error) {
+    console.error('Error getting user sold NFTs:', error);
+    return [];
+  }
+}
+
 // Get all NFTs that have changed ownership (sold NFTs) - for global sold history
 export async function getAllSoldNFTs(): Promise<any[]> {
   try {
@@ -326,7 +407,7 @@ export async function getAllSoldNFTs(): Promise<any[]> {
       soldAt: post.timestamp + (24 * 60 * 60 * 1000), // Estimate sold 1 day after creation
       buyer: post.currentOwner,
       seller: post.author,
-      transactionHash: `0x${Math.random().toString(16).substr(2, 8)}...`, // Generate mock tx hash
+      transactionHash: `0x${Math.random().toString(16).slice(2, 10)}...`, // Generate mock tx hash
       salePrice: post.price || 0,
       // Additional info for sold NFTs
       createdAt: post.timestamp,
@@ -343,5 +424,4 @@ export async function getAllSoldNFTs(): Promise<any[]> {
 
 // Backward compatibility aliases
 export const proposeSwap = proposeSell;
-export const acceptSwap = acceptSell;
-export const rejectSwap = rejectSell;
+// acceptSwap and rejectSwap removed - direct buying only
