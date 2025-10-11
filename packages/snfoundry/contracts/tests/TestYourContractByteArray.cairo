@@ -272,7 +272,7 @@ fn test_get_all_posts_for_sale() {
 }
 
 #[test]
-fn test_accept_sell_proposal() {
+fn test_buy_proposed_post() {
     let contract = deploy_contract();
     let alice = get_alice_address();
     let bob = get_bob_address();
@@ -282,12 +282,12 @@ fn test_accept_sell_proposal() {
     let content_hash: ByteArray = "QmTestAccept";
     let token_id = contract.create_post(content_hash, 0);
     let price: u256 = 3000000000000000000; // 3 ETH
-    let proposal_id = contract.propose_sell(token_id, price);
+    let _proposal_id = contract.propose_sell(token_id, price);
     stop_cheat_caller_address(contract.contract_address);
 
-    // Bob accepts the sell proposal
+    // Bob buys the post
     start_cheat_caller_address(contract.contract_address, bob);
-    contract.accept_sell(proposal_id);
+    contract.buy_post(token_id);
     stop_cheat_caller_address(contract.contract_address);
 
     // Verify ownership transfer
@@ -322,12 +322,12 @@ fn test_secondary_sale_with_royalty() {
     // Bob proposes to sell to Charlie (secondary sale - should have royalty)
     start_cheat_caller_address(contract.contract_address, bob);
     let secondary_price: u256 = 2000000000000000000; // 2 ETH
-    let proposal_id = contract.propose_sell(token_id, secondary_price);
+    let _proposal_id = contract.propose_sell(token_id, secondary_price);
     stop_cheat_caller_address(contract.contract_address);
 
-    // Charlie accepts (this should trigger royalty to Alice)
+    // Charlie buys the post (this should trigger royalty to Alice)
     start_cheat_caller_address(contract.contract_address, charlie);
-    contract.accept_sell(proposal_id);
+    contract.buy_post(token_id);
     stop_cheat_caller_address(contract.contract_address);
 
     // Verify Charlie now owns the post
@@ -383,7 +383,6 @@ fn test_multiple_users_posts() {
 fn test_proposal_expiration() {
     let contract = deploy_contract();
     let alice = get_alice_address();
-    let bob = get_bob_address();
 
     // Set initial timestamp
     let initial_time: u64 = 1000000;
@@ -393,17 +392,20 @@ fn test_proposal_expiration() {
     let content_hash: ByteArray = "QmTestExpiry";
     let token_id = contract.create_post(content_hash, 0);
     let _proposal_id = contract.propose_sell(token_id, 1000000000000000000);
+    
+    // Check proposal is there before expiration
+    let proposals_before = contract.get_sell_proposals(alice);
+    assert(proposals_before.len() == 1, '1 proposal before expiry');
+    
     stop_cheat_caller_address(contract.contract_address);
 
     // Fast forward time beyond expiration (7 days = 604800 seconds)
     let expired_time = initial_time + 604801;
     start_cheat_block_timestamp(contract.contract_address, expired_time);
 
-    // Bob tries to accept expired proposal - should panic
-    start_cheat_caller_address(contract.contract_address, bob);
-    // This should panic with 'Proposal expired'
-    // Note: We can't test the panic here easily, but the logic is in place
-    stop_cheat_caller_address(contract.contract_address);
+    // Check that get_sell_proposals returns no proposals
+    let proposals_after = contract.get_sell_proposals(alice);
+    assert(proposals_after.len() == 0, '0 proposals after expiry');
 
     stop_cheat_block_timestamp(contract.contract_address);
 }
