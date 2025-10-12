@@ -122,7 +122,7 @@ const IndexContent: React.FC = () => {
       />
 
       <div className="container mx-auto px-2 sm:px-4 max-w-4xl">
-        <main className="animate-fade-in pb-24 md:pb-4 px-1 sm:px-0 pt-24 md:pt-44">
+        <main className="animate-fade-in pb-24 md:pb-4 px-1 sm:px-0 pt-10 md:pt-44">
             {activeTab === 'feed' && (
               <CommunityFeed
                 isLoading={state.isLoading}

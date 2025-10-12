@@ -76,7 +76,7 @@ const PostSample = () => {
                       )}
                     </div>
                     <div className='block text-center justify-center items-center flex-col md:flex-row'>
-                        <img src={BadgeImage} className='w-72 object-cover'></img>    
+                        <img src={BadgeImage} className='w-72 object-cover m-auto'></img>    
                     </div>
             </div>
         </div>
