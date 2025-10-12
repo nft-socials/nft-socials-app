@@ -126,10 +126,11 @@ self.addEventListener('fetch', (event) => {
       fetch(request)
         .then((response) => {
           // Cache successful responses
-          if (response.status === 200) {
+          if (response && response.status === 200 && response.type === 'basic') {
             const responseClone = response.clone();
             caches.open(DYNAMIC_CACHE)
-              .then((cache) => cache.put(request, responseClone));
+              .then((cache) => cache.put(request, responseClone))
+              .catch((error) => console.log('Cache put error:', error));
           }
           return response;
         })

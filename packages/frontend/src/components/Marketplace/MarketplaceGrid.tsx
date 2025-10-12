@@ -14,6 +14,7 @@ import SoldNFTsModal from '@/components/Marketplace/SoldNFTsModal';
 import type { Post } from '@/context/AppContext';
 import { useAccount } from '@starknet-react/core';
 import { fileURLToPath } from 'url';
+import { LikesService } from '@/services/chatService';
 
 interface MarketplaceGridProps {
   onNavigate?: (tab: string) => void;
@@ -29,6 +30,40 @@ const MarketplaceGrid: React.FC<MarketplaceGridProps> = ({ onNavigate }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'for-sale' | 'my-nfts' | 'sold'>('all');
   const { address, account } = useAccount();
+
+  // Load initial like data
+  useEffect(() => {
+    const loadLikeData = async () => {
+      if (!address || !posts.length) return;
+
+      try {
+        const likePromises = posts.map(async (post) => {
+          const [isLiked, count] = await Promise.all([
+            LikesService.hasUserLiked(address, 'post', post.tokenId),
+            LikesService.getLikeCount('post', post.tokenId)
+          ]);
+          return { tokenId: post.tokenId, isLiked, count };
+        });
+
+        const likeData = await Promise.all(likePromises);
+
+        const newLikedPosts = new Set<string>();
+        const newLikeCounts: { [key: string]: number } = {};
+
+        likeData.forEach(({ tokenId, isLiked, count }) => {
+          if (isLiked) newLikedPosts.add(tokenId);
+          newLikeCounts[tokenId] = count;
+        });
+
+        setLikedPosts(newLikedPosts);
+        setLikeCounts(newLikeCounts);
+      } catch (error) {
+        console.error('Error loading like data:', error);
+      }
+    };
+
+    loadLikeData();
+  }, [address, posts]);
 
   useEffect(() => {
     fetchMarketplacePosts();
@@ -72,22 +107,38 @@ const MarketplaceGrid: React.FC<MarketplaceGridProps> = ({ onNavigate }) => {
     }
   };
 
-  const handleLike = (post: Post) => {
-    const newLikedPosts = new Set(likedPosts);
-    const newLikeCounts = { ...likeCounts };
-
-    if (likedPosts.has(post.tokenId)) {
-      newLikedPosts.delete(post.tokenId);
-      newLikeCounts[post.tokenId] = Math.max(0, (newLikeCounts[post.tokenId] || 0) - 1);
-      toast.success('💔 Unliked');
-    } else {
-      newLikedPosts.add(post.tokenId);
-      newLikeCounts[post.tokenId] = (newLikeCounts[post.tokenId] || 0) + 1;
-      toast.success('❤️ Liked!');
+  const handleLike = async (post: Post) => {
+    if (!address) {
+      toast.error('Please connect your wallet to like posts');
+      return;
     }
 
-    setLikedPosts(newLikedPosts);
-    setLikeCounts(newLikeCounts);
+    try {
+      const result = await LikesService.toggleLike(
+        address,
+        'post',
+        post.tokenId,
+        post.author
+      );
+
+      const newLikedPosts = new Set(likedPosts);
+      const newLikeCounts = { ...likeCounts };
+
+      if (result.liked) {
+        newLikedPosts.add(post.tokenId);
+        toast.success(`❤️ You liked NFT #${post.tokenId}!`, { duration: 2000 });
+      } else {
+        newLikedPosts.delete(post.tokenId);
+        toast.success(`💔 Unliked NFT #${post.tokenId}`, { duration: 2000 });
+      }
+
+      newLikeCounts[post.tokenId] = result.count;
+      setLikedPosts(newLikedPosts);
+      setLikeCounts(newLikeCounts);
+    } catch (error) {
+      console.error('Error toggling like:', error);
+      toast.error('Failed to update like');
+    }
   };
 
   const handleShare = (post: Post) => {
@@ -119,9 +170,11 @@ const MarketplaceGrid: React.FC<MarketplaceGridProps> = ({ onNavigate }) => {
     }
 
     try {
+      toast.loading('💳 Processing purchase...', { duration: 0 });
       const txHash = await buyPost(account, post.tokenId);
       console.log('Purchase successful, transaction hash:', txHash);
-      toast.success(`🎉 Successfully purchased NFT #${post.tokenId}!`);
+      toast.dismiss();
+      toast.success(`🎉 Successfully purchased NFT #${post.tokenId}! 🚀`, { duration: 4000 });
 
       // Update the post locally immediately for better UX
       setPosts(prevPosts =>
@@ -136,12 +189,14 @@ const MarketplaceGrid: React.FC<MarketplaceGridProps> = ({ onNavigate }) => {
       setTimeout(() => fetchMarketplacePosts(), 1000);
     } catch (error: any) {
       console.error('Error buying NFT:', error);
-      toast.error('Failed to purchase NFT. Please try again.');
+      toast.dismiss();
+      const errorMessage = error?.message || 'Failed to purchase NFT';
+      toast.error(`❌ ${errorMessage}`, { duration: 4000 });
     }
   };
 
   const handleSellSuccess = (post: Post, price: string) => {
-    toast.success(`🎉 NFT #${post.tokenId} listed for ${price} STRK!`);
+    toast.success(`🎉 NFT #${post.tokenId} listed for sale at ${price} STRK! 💰`, { duration: 4000 });
     // Refresh posts to update the marketplace
     fetchMarketplacePosts();
   };
@@ -179,7 +234,7 @@ const MarketplaceGrid: React.FC<MarketplaceGridProps> = ({ onNavigate }) => {
   const handleChat = (post: Post) => {
     // Navigate to chat with the post owner (current owner, not author)
     const ownerAddress = post.currentOwner;
-    const ownerName = `${ownerAddress.slice(0, 6)}...${ownerAddress.slice(-4)}.stark`;
+    const ownerName = `${ownerAddress.slice(0, 6)}...${ownerAddress.slice(-4)}`;
 
     // Store chat info in localStorage for the chat page to pick up
     localStorage.setItem('chatTarget', JSON.stringify({

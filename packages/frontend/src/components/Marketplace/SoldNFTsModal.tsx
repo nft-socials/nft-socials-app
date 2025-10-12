@@ -5,8 +5,9 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { History, TrendingUp, ExternalLink, Clock, User, DollarSign, Loader2 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
-import { getSoldNFTs } from '@/services/contract';
+import { toast } from '@/components/ui/sonner';
+import { getAllSoldNFTs } from '@/services/contract';
+import { getFromIPFS } from '@/services/ipfs';
 
 interface SoldNFT {
   tokenId: string;
@@ -31,14 +32,38 @@ const SoldNFTsModal: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
-  // Fetch real sold NFTs data
+  // Fetch real sold NFTs data with IPFS metadata
   useEffect(() => {
     const fetchSoldNFTs = async () => {
       if (isOpen) {
         setIsLoading(true);
         try {
-          const realSoldNFTs = await getSoldNFTs();
-          setSoldNFTs(realSoldNFTs);
+          const realSoldNFTs = await getAllSoldNFTs();
+
+          // Load IPFS metadata for each sold NFT
+          const nftsWithMetadata = await Promise.all(
+            realSoldNFTs.map(async (nft) => {
+              try {
+                const metadata = await getFromIPFS(nft.contentHash);
+                return {
+                  ...nft,
+                  title: metadata?.content || nft.content || `NFT #${nft.tokenId}`,
+                  image: metadata?.image || null,
+                  description: metadata?.content || nft.content || 'No description'
+                };
+              } catch (error) {
+                console.error('Error loading NFT metadata:', error);
+                return {
+                  ...nft,
+                  title: nft.content || `NFT #${nft.tokenId}`,
+                  image: null,
+                  description: nft.content || 'No description'
+                };
+              }
+            })
+          );
+
+          setSoldNFTs(nftsWithMetadata);
         } catch (error) {
           console.error('Error fetching sold NFTs:', error);
           toast.error('Failed to load sold NFTs');
@@ -69,8 +94,10 @@ const SoldNFTsModal: React.FC = () => {
   };
 
   const openTransaction = (txHash: string) => {
-    // In a real app, this would open the transaction on a block explorer
-    toast.success(`Opening transaction: ${truncateAddress(txHash)}`);
+    // Open the transaction on Starknet Sepolia Voyager block explorer
+    const explorerUrl = `https://sepolia.voyager.online/tx/${txHash}`;
+    window.open(explorerUrl, '_blank', 'noopener,noreferrer');
+    toast.success(`Opening transaction in block explorer...`);
   };
 
   return (
@@ -156,7 +183,19 @@ const SoldNFTsModal: React.FC = () => {
                           </Badge>
                         </div>
                         
-                        <h4 className="font-medium mb-2 line-clamp-1">{nft.content || 'NFT Post'}</h4>
+                        <div className="flex items-start gap-3 mb-2">
+                          {nft.image && (
+                            <img
+                              src={nft.image}
+                              alt={`NFT #${nft.tokenId}`}
+                              className="w-12 h-12 rounded object-cover flex-shrink-0"
+                            />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium line-clamp-1">{nft.title || nft.content || 'NFT Post'}</h4>
+                            <p className="text-sm text-muted-foreground line-clamp-2">{nft.description}</p>
+                          </div>
+                        </div>
                         
                         <div className="space-y-2 text-sm text-muted-foreground">
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
