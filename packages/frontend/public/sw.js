@@ -20,16 +20,13 @@ const API_CACHE_PATTERNS = [
 
 // Install event - cache static files
 self.addEventListener('install', (event) => {
-  console.log('Service Worker: Installing...');
   
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
-        console.log('Service Worker: Caching static files');
         return cache.addAll(STATIC_FILES);
       })
       .then(() => {
-        console.log('Service Worker: Static files cached');
         return self.skipWaiting();
       })
       .catch((error) => {
@@ -40,7 +37,6 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker: Activating...');
   
   event.waitUntil(
     caches.keys()
@@ -48,14 +44,12 @@ self.addEventListener('activate', (event) => {
         return Promise.all(
           cacheNames.map((cacheName) => {
             if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
-              console.log('Service Worker: Deleting old cache', cacheName);
               return caches.delete(cacheName);
             }
           })
         );
       })
       .then(() => {
-        console.log('Service Worker: Activated');
         return self.clients.claim();
       })
   );
@@ -126,10 +120,11 @@ self.addEventListener('fetch', (event) => {
       fetch(request)
         .then((response) => {
           // Cache successful responses
-          if (response.status === 200) {
+          if (response && response.status === 200 && response.type === 'basic') {
             const responseClone = response.clone();
             caches.open(DYNAMIC_CACHE)
-              .then((cache) => cache.put(request, responseClone));
+              .then((cache) => cache.put(request, responseClone))
+              .catch((error) => console.log('Cache put error:', error));
           }
           return response;
         })
@@ -143,7 +138,6 @@ self.addEventListener('fetch', (event) => {
 
 // Background sync for offline post creation
 self.addEventListener('sync', (event) => {
-  console.log('Service Worker: Background sync triggered', event.tag);
   
   if (event.tag === 'background-post-sync') {
     event.waitUntil(
@@ -155,7 +149,6 @@ self.addEventListener('sync', (event) => {
 
 // Push notification handling
 self.addEventListener('push', (event) => {
-  console.log('Service Worker: Push notification received');
   
   const options = {
     body: event.data ? event.data.text() : 'New activity on OnePostDaily!',
@@ -187,7 +180,6 @@ self.addEventListener('push', (event) => {
 
 // Notification click handling
 self.addEventListener('notificationclick', (event) => {
-  console.log('Service Worker: Notification clicked');
   
   event.notification.close();
 
@@ -228,10 +220,8 @@ async function getOfflinePosts() {
 
 async function syncPost(post) {
   // Implementation would call the actual API
-  console.log('Syncing post:', post);
 }
 
 async function removeOfflinePost(postId) {
   // Implementation would remove from IndexedDB or localStorage
-  console.log('Removing offline post:', postId);
 }

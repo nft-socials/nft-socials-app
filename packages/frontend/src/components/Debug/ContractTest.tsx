@@ -15,9 +15,7 @@ const ContractTest: React.FC = () => {
     setTestResult('Testing contract connection...');
 
     try {
-      console.log('Starting contract test...');
       const posts = await getAllPosts(0, 5);
-      console.log('Contract test result:', posts);
       setTestResult(`✅ Contract working! Found ${posts.length} posts`);
     } catch (error) {
       console.error('Contract test failed:', error);
@@ -32,7 +30,6 @@ const ContractTest: React.FC = () => {
     setTestResult('Testing IPFS upload...');
 
     try {
-      console.log('Starting IPFS test...');
       const metadata = {
         content: 'Test post content',
         timestamp: Date.now(),
@@ -40,7 +37,6 @@ const ContractTest: React.FC = () => {
         version: '1.0' as const
       };
       const hash = await storeOnIPFS(metadata);
-      console.log('IPFS test result:', hash);
       setTestResult(`✅ IPFS working! Hash: ${hash}`);
     } catch (error) {
       console.error('IPFS test failed:', error);
@@ -60,9 +56,7 @@ const ContractTest: React.FC = () => {
     setTestResult('Testing post creation...');
 
     try {
-      console.log('Starting createPost test...');
       const result = await createPost(account, 'test-hash', 0);
-      console.log('CreatePost test result:', result);
       setTestResult(`✅ CreatePost working! TX: ${result}`);
     } catch (error) {
       console.error('CreatePost test failed:', error);

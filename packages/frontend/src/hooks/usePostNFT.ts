@@ -17,6 +17,7 @@ import {
 } from '@/services/contract';
 import { storeOnIPFS, PostMetadata } from '@/services/ipfs';
 import type { Post } from '@/context/AppContext';
+import { NotificationService } from '@/services/notificationService';
 
 export interface PostNFTState {
   isLoading: boolean;
@@ -37,7 +38,6 @@ export const usePostNFT = () => {
 
   // Mint a new post as NFT
   const mintPost = useCallback(async (content: string, imageDataUrl?: string, onSuccess?: () => void): Promise<string | null> => {
-    console.log('mintPost called with:', { content, hasImage: !!imageDataUrl, account: !!account, address });
 
     if (!account || !address) {
       toast.error('Please connect your wallet first');
@@ -45,7 +45,6 @@ export const usePostNFT = () => {
     }
 
     try {
-      console.log('Starting mintPost process...');
       setLoading(true);
       setError(undefined);
 
@@ -64,19 +63,27 @@ export const usePostNFT = () => {
         version: '1.0',
         image: imageDataUrl // Include image data if provided
       };
-      console.log('Prepared metadata:', metadata);
 
       // Store on IPFS
-      console.log('About to store on IPFS...');
       const ipfsHash = await storeOnIPFS(metadata);
-      console.log("Storing to IPFS successful:", ipfsHash);
 
       // Mint NFT with IPFS hash (price = 0 for regular posts)
-      console.log('About to call createPost...');
       const txHash = await createPost(account, ipfsHash, 0);
-      console.log('createPost successful:', txHash);
 
       toast.success('Post minted successfully! 🎉 Redirecting to home...');
+
+      // Create notification for successful post creation
+      try {
+        // Extract token ID from transaction hash or use a placeholder
+        const tokenId = txHash.slice(-6); // Use last 6 chars as token ID placeholder
+        await NotificationService.createPostCreatedNotification(
+          account.address,
+          tokenId
+        );
+      } catch (notificationError) {
+        console.error('Error creating post notification:', notificationError);
+        // Don't fail the whole operation for notification error
+      }
 
       // Call success callback to redirect to home
       if (onSuccess) {
@@ -116,6 +123,19 @@ export const usePostNFT = () => {
 
       const txHash = await proposeSell(account, tokenId, price);
       toast.success('Sell proposal submitted! 💰');
+
+      // Create notification for NFT listing
+      try {
+        await NotificationService.createNFTListedNotification(
+          account.address,
+          String(tokenId),
+          String(price)
+        );
+      } catch (notificationError) {
+        console.error('Error creating listing notification:', notificationError);
+        // Don't fail the whole operation for notification error
+      }
+
       return txHash;
     } catch (err: unknown) {
       const errorMessage = (err as Error)?.message || 'Failed to propose sell';

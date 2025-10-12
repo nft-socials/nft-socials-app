@@ -39,16 +39,7 @@ const SellModal: React.FC<SellModalProps> = ({ isOpen, onClose, post, onSellSucc
       // Convert STRK to smallest unit (multiply by 10^18) and ensure it's a proper integer
       const priceInStrkUnits = BigInt(Math.floor(priceValue * 1e18));
 
-      console.log('Selling NFT:', {
-        tokenId: post.tokenId,
-        priceSTRK: priceValue,
-        priceStrkUnits: priceInStrkUnits.toString(),
-        account: account.address
-      });
-
       const txHash = await proposeSell(account, post.tokenId, Number(priceInStrkUnits));
-
-      console.log('Sell transaction hash:', txHash);
 
       toast.dismiss();
       toast.success('🎉 NFT listed for sale successfully!');

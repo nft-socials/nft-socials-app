@@ -13,16 +13,18 @@ interface DesktopNavigationProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   notificationCount?: number;
+  chatCount?: number;
 }
 
 const DesktopNavigation: React.FC<DesktopNavigationProps> = ({
   activeTab,
   onTabChange,
-  notificationCount = 0,
+  notificationCount,
+  chatCount,
 }) => {
   const navigationItems = [
     { id: 'feed', label: 'Posts', icon: Home },
-    { id: 'Chats', label: 'Chats', icon: MessageCircle },
+    { id: 'Chats', label: 'Chats', icon: MessageCircle, badge: chatCount },
     { id: 'marketplace', label: 'Marketplace', icon: ArrowUpDown },
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'notifications', label: 'Notifications', icon: Bell, badge: notificationCount },
@@ -54,8 +56,12 @@ const DesktopNavigation: React.FC<DesktopNavigationProps> = ({
                 <Icon className="w-4 h-4" />
                 <span>{item.label}</span>
                 {item.badge && item.badge > 0 && (
-                  <Badge className="ml-1 bg-primary text-primary-foreground">
-                    {item.badge}
+                  <Badge className={`ml-1 text-white ${
+                    item.id === 'Chats'
+                      ? 'bg-green-500 hover:bg-green-600'
+                      : 'bg-green-500 hover:bg-green-600'
+                  }`}>
+                    {item.badge > 99 ? '99+' : item.badge}
                   </Badge>
                 )}
               </Button>

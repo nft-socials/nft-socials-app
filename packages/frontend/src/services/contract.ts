@@ -12,7 +12,6 @@ const CONTRACT_ABI = CONTRACT_INFO.abi;
 function resolveAddress(): string {
   const envAddr = (import.meta as any).env?.VITE_CONTRACT_ADDRESS as string | undefined;
   const addr = envAddr || CONTRACT_ADDRESS;
-  console.log('Resolving contract address - env:', envAddr, 'default:', CONTRACT_ADDRESS, 'final:', addr);
   if (!addr) throw new Error('Contract address not configured. Set VITE_CONTRACT_ADDRESS or use deployedContracts.ts');
   return addr;
 }
@@ -21,11 +20,9 @@ const provider = new Provider({});
 
 // Utility to convert ByteArray to string
 function byteArrayToString(byteArray: any): string {
-  console.log('Converting ByteArray to string:', byteArray);
 
   // If it's already a string, return it
   if (typeof byteArray === 'string') {
-    console.log('Already a string:', byteArray);
     return byteArray;
   }
 
@@ -33,7 +30,6 @@ function byteArrayToString(byteArray: any): string {
   if (byteArray?.data && Array.isArray(byteArray.data)) {
     try {
       const result = byteArray.data.map((byte: any) => String.fromCharCode(Number(byte))).join('');
-      console.log('Converted from ByteArray data:', result);
       return result;
     } catch (error) {
       console.error('Error converting ByteArray data:', error);
@@ -44,7 +40,6 @@ function byteArrayToString(byteArray: any): string {
   if (Array.isArray(byteArray)) {
     try {
       const result = byteArray.map((byte: any) => String.fromCharCode(Number(byte))).join('');
-      console.log('Converted from array:', result);
       return result;
     } catch (error) {
       console.error('Error converting array:', error);
@@ -53,7 +48,6 @@ function byteArrayToString(byteArray: any): string {
 
   // Fallback
   const fallback = String(byteArray || '');
-  console.log('Using fallback conversion:', fallback);
   return fallback;
 }
 
@@ -69,12 +63,10 @@ function stringToByteArray(str: string): any {
 // Utilities
 const toAppPost = async (p: any): Promise<AppPost> => {
   const contentHash = byteArrayToString(p.content_hash);
-  console.log('Processing post with content hash:', contentHash);
 
   // Fetch content from IPFS using multiple gateways for better reliability
   let content = 'Loading content from IPFS...';
   try {
-    console.log('Fetching from IPFS:', contentHash);
 
     // Try multiple IPFS gateways for better reliability
     const gateways = [
@@ -86,7 +78,6 @@ const toAppPost = async (p: any): Promise<AppPost> => {
     let data = null;
     for (const gateway of gateways) {
       try {
-        console.log('Trying gateway:', gateway);
         const response = await fetch(gateway, {
           method: 'GET',
           headers: {
@@ -98,13 +89,10 @@ const toAppPost = async (p: any): Promise<AppPost> => {
 
         if (response.ok) {
           data = await response.json();
-          console.log('Successfully fetched from IPFS:', data);
           break;
         } else {
-          console.log('Gateway failed with status:', response.status);
         }
       } catch (gatewayError) {
-        console.log('Gateway error:', gatewayError);
         continue;
       }
     }
@@ -138,26 +126,20 @@ const toAppPost = async (p: any): Promise<AppPost> => {
     price: Number(p.price ?? 0),
   };
 
-  console.log('Processed post:', post);
   return post;
 };
 
 async function getContract(signer?: any) {
   const abi = CONTRACT_ABI;
   const address = resolveAddress();
-  console.log('Contract address:', address, 'Signer:', !!signer);
   return new Contract(abi, address, signer ?? provider);
 }
 
 // READ FUNCTIONS
 export async function getAllPosts(offset: number, limit: number): Promise<AppPost[]> {
-  console.log('getAllPosts called with offset:', offset, 'limit:', limit);
   const contract = await getContract();
-  console.log('Contract instance created, calling get_all_posts...');
   const posts: any[] = await (contract as any).get_all_posts(offset, limit);
-  console.log('Raw posts from contract:', posts);
   const mappedPosts = await Promise.all(posts.map(toAppPost));
-  console.log('Mapped posts:', mappedPosts);
   return mappedPosts;
 }
 
@@ -205,21 +187,14 @@ export async function getAllPostsForSale(offset: number, limit: number): Promise
 
 // WRITE FUNCTIONS (require connected account)
 export async function createPost(account: AccountInterface, ipfsCid: string, price: number = 0): Promise<string> {
-   console.log("checking if it gets here")
-  console.log('Creating post with IPFS CID:', ipfsCid, 'Price:', price);
   const contract = await getContract(account);
-  console.log('Contract instance created for createPost');
 
   // For ByteArray in starknet.js, we need to pass the string directly
   // The library will handle the conversion to ByteArray format
   const contentHash = ipfsCid;
   const priceU256 = BigInt(price);
 
-  console.log('Content Hash:', contentHash, 'Price U256:', priceU256);
-
-  console.log('Invoking create_post on contract...');
   const tx = await (contract as any).invoke('create_post', [contentHash, priceU256]);
-  console.log('Transaction result:', tx);
   return tx?.transaction_hash ?? String(tx);
 }
 
@@ -227,7 +202,6 @@ export async function createPost(account: AccountInterface, ipfsCid: string, pri
 export const createDailyPost = createPost;
 
 export async function proposeSell(account: AccountInterface, tokenId: string | number | bigint, price: number): Promise<string> {
-  console.log('Proposing sell for token:', tokenId, 'Price:', price);
   const contract = await getContract(account);
 
   // Convert to proper u256 format
@@ -292,7 +266,6 @@ export async function cancelSell(account: AccountInterface, tokenId: string | nu
 }
 
 export async function buyPost(account: AccountInterface, tokenId: string | number | bigint): Promise<string> {
-  console.log('Buying post with token ID:', tokenId);
   const contract = await getContract(account);
 
   // Get post price
@@ -304,7 +277,6 @@ export async function buyPost(account: AccountInterface, tokenId: string | numbe
   const balanceResult = await strkContract.balanceOf(account.address);
   const balance = BigInt(balanceResult.low || balanceResult);
 
-  console.log('Price:', price.toString(), 'Balance:', balance.toString());
 
   if (balance < price) {
     throw new Error(`Insufficient STRK balance. Need ${price} STRK but have ${balance} STRK`);
@@ -339,6 +311,21 @@ export async function buyPost(account: AccountInterface, tokenId: string | numbe
   const existingSoldNFTs = JSON.parse(localStorage.getItem('soldNFTs') || '[]');
   existingSoldNFTs.push(soldNFT);
   localStorage.setItem('soldNFTs', JSON.stringify(existingSoldNFTs));
+
+  // Create notification for the seller
+  try {
+    const { NotificationService } = await import('./notificationService');
+    const buyerName = `User ${account.address.slice(-3)}.stark`;
+    await NotificationService.createBuyNotification(
+      post.currentOwner, // seller address
+      account.address,   // buyer address
+      buyerName,
+      String(tokenId)
+    );
+  } catch (notificationError) {
+    console.error('Error creating buy notification:', notificationError);
+    // Don't throw error for notification failure
+  }
 
   return multiCall.transaction_hash;
 }
@@ -379,7 +366,6 @@ export async function getSoldNFTs(): Promise<any[]> {
 
 // Get user's sold NFTs from contract mapping
 export async function getUserSoldNFTs(userAddress: string): Promise<string[]> {
-  console.log('Getting user sold NFTs from contract...');
   const contract = await getContract();
 
   try {
@@ -395,9 +381,11 @@ export async function getUserSoldNFTs(userAddress: string): Promise<string[]> {
 export async function getAllSoldNFTs(): Promise<any[]> {
   try {
     // Get all posts and check which ones have different author vs currentOwner
+    // AND are not currently for sale (truly sold, not just listed)
     const allPosts = await getAllPosts(0, 1000);
     const soldPosts = allPosts.filter(post =>
-      post.author.toLowerCase() !== post.currentOwner.toLowerCase()
+      post.author.toLowerCase() !== post.currentOwner.toLowerCase() &&
+      !post.isForSale // Only include NFTs that are not currently for sale
     );
 
     // Add sold status and detailed sale info
@@ -407,7 +395,7 @@ export async function getAllSoldNFTs(): Promise<any[]> {
       soldAt: post.timestamp + (24 * 60 * 60 * 1000), // Estimate sold 1 day after creation
       buyer: post.currentOwner,
       seller: post.author,
-      transactionHash: `0x${Math.random().toString(16).slice(2, 10)}...`, // Generate mock tx hash
+      transactionHash: `0x${Array.from({length: 64}, () => Math.floor(Math.random() * 16).toString(16)).join('')}`, // Generate complete 64-char mock tx hash
       salePrice: post.price || 0,
       // Additional info for sold NFTs
       createdAt: post.timestamp,
