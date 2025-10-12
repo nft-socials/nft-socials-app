@@ -340,6 +340,21 @@ export async function buyPost(account: AccountInterface, tokenId: string | numbe
   existingSoldNFTs.push(soldNFT);
   localStorage.setItem('soldNFTs', JSON.stringify(existingSoldNFTs));
 
+  // Create notification for the seller
+  try {
+    const { NotificationService } = await import('./notificationService');
+    const buyerName = `User ${account.address.slice(-3)}.stark`;
+    await NotificationService.createBuyNotification(
+      post.currentOwner, // seller address
+      account.address,   // buyer address
+      buyerName,
+      String(tokenId)
+    );
+  } catch (notificationError) {
+    console.error('Error creating buy notification:', notificationError);
+    // Don't throw error for notification failure
+  }
+
   return multiCall.transaction_hash;
 }
 
@@ -395,9 +410,11 @@ export async function getUserSoldNFTs(userAddress: string): Promise<string[]> {
 export async function getAllSoldNFTs(): Promise<any[]> {
   try {
     // Get all posts and check which ones have different author vs currentOwner
+    // AND are not currently for sale (truly sold, not just listed)
     const allPosts = await getAllPosts(0, 1000);
     const soldPosts = allPosts.filter(post =>
-      post.author.toLowerCase() !== post.currentOwner.toLowerCase()
+      post.author.toLowerCase() !== post.currentOwner.toLowerCase() &&
+      !post.isForSale // Only include NFTs that are not currently for sale
     );
 
     // Add sold status and detailed sale info
@@ -407,7 +424,7 @@ export async function getAllSoldNFTs(): Promise<any[]> {
       soldAt: post.timestamp + (24 * 60 * 60 * 1000), // Estimate sold 1 day after creation
       buyer: post.currentOwner,
       seller: post.author,
-      transactionHash: `0x${Math.random().toString(16).slice(2, 10)}...`, // Generate mock tx hash
+      transactionHash: `0x${Array.from({length: 64}, () => Math.floor(Math.random() * 16).toString(16)).join('')}`, // Generate complete 64-char mock tx hash
       salePrice: post.price || 0,
       // Additional info for sold NFTs
       createdAt: post.timestamp,

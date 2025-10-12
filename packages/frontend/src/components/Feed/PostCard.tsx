@@ -8,6 +8,7 @@ import { usePostSwipeActions } from '@/hooks/useSwipeGestures';
 import { getFromIPFS, PostMetadata } from '@/services/ipfs';
 import { useAccount } from '@starknet-react/core';
 import ImageZoomModal from '@/components/Modals/ImageZoomModal';
+import { formatTimeAgo } from '@/utils/timeUtils';
 
 interface PostCardProps {
   post: Post;
@@ -75,16 +76,7 @@ const PostCard: React.FC<PostCardProps> = ({
     fetchMetadata();
   }, [post.contentHash]);
 
-  const timeAgo = (timestamp: number) => {
-    const now = Date.now();
-    const diff = now - timestamp;
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(hours / 24);
 
-    if (days > 0) return `${days}d ago`;
-    if (hours > 0) return `${hours}h ago`;
-    return 'Just now';
-  };
 
   const truncateAddress = (addr: string) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
@@ -196,7 +188,7 @@ const PostCard: React.FC<PostCardProps> = ({
               <div className="text-sm font-medium text-foreground">{truncateAddress(post.currentOwner)}</div>
               <div className="text-xs text-muted-foreground flex items-center gap-1">
                 <Clock className="w-3 h-3" />
-                {timeAgo(post.timestamp)}
+                {formatTimeAgo(new Date(post.timestamp))}
               </div>
               {post.author !== post.currentOwner && (
                 <div className="text-xs text-muted-foreground">
@@ -206,7 +198,7 @@ const PostCard: React.FC<PostCardProps> = ({
             </div>
           </div>
           
-          <Badge className={`${swapStatus.color} border-0`}>
+          <Badge className={`${swapStatus.color} border-0 text-nowrap`}>
             {swapStatus.label}
           </Badge>
         </div>

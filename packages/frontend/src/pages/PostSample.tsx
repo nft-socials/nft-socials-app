@@ -36,7 +36,7 @@ const PostSample = () => {
                               <Sparkles className="w-4 h-4 text-primary-foreground" />
                             </div>
                             <div className="text-left">
-                              <div className="font-medium">Your Nft Post</div>
+                              <div className="font-medium">Sample Nft Post</div>
                               <div className="text-sm text-muted-foreground">Just now</div>
                             </div>
                           </div>

@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Loader2, Heart, Share2 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { toast } from '@/components/ui/sonner';
 import { useAccount } from '@starknet-react/core';
-import { cancelSell } from '@/services/contract';
+import { cancelSell, buyPost } from '@/services/contract';
 import PostCard from '@/components/Feed/PostCard';
 import SellModal from '@/components/Modals/SellModal';
 import type { Post } from '@/context/AppContext';
 import PostSample from '@/pages/PostSample';
+import { LikesService } from '@/services/chatService';
 
 interface CommunityFeedProps {
   isLoading: boolean;
@@ -23,6 +24,40 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ isLoading, posts, onRefre
   const [sellModalOpen, setSellModalOpen] = useState(false);
   const [selectedPostForSell, setSelectedPostForSell] = useState<Post | null>(null);
   const { address, account } = useAccount();
+
+  // Load initial like data
+  useEffect(() => {
+    const loadLikeData = async () => {
+      if (!address || !posts.length) return;
+
+      try {
+        const likePromises = posts.map(async (post) => {
+          const [isLiked, count] = await Promise.all([
+            LikesService.hasUserLiked(address, 'post', post.tokenId),
+            LikesService.getLikeCount('post', post.tokenId)
+          ]);
+          return { tokenId: post.tokenId, isLiked, count };
+        });
+
+        const likeData = await Promise.all(likePromises);
+
+        const newLikedPosts = new Set<string>();
+        const newLikeCounts: { [key: string]: number } = {};
+
+        likeData.forEach(({ tokenId, isLiked, count }) => {
+          if (isLiked) newLikedPosts.add(tokenId);
+          newLikeCounts[tokenId] = count;
+        });
+
+        setLikedPosts(newLikedPosts);
+        setLikeCounts(newLikeCounts);
+      } catch (error) {
+        console.error('Error loading like data:', error);
+      }
+    };
+
+    loadLikeData();
+  }, [address, posts]);
 
   // Auto-refresh posts that are still loading from IPFS
   useEffect(() => {
@@ -42,22 +77,39 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ isLoading, posts, onRefre
     }
   }, [posts, onRefresh]);
 
-  const handleLike = (post: Post) => {
-    const newLikedPosts = new Set(likedPosts);
-    const newLikeCounts = { ...likeCounts };
-
-    if (likedPosts.has(post.tokenId)) {
-      newLikedPosts.delete(post.tokenId);
-      newLikeCounts[post.tokenId] = Math.max(0, (newLikeCounts[post.tokenId] || 0) - 1);
-      toast.success('💔 Unliked');
-    } else {
-      newLikedPosts.add(post.tokenId);
-      newLikeCounts[post.tokenId] = (newLikeCounts[post.tokenId] || 0) + 1;
-      toast.success('❤️ Liked!');
+  const handleLike = async (post: Post) => {
+    if (!address) {
+      toast.error('Please connect your wallet to like posts');
+      return;
     }
 
-    setLikedPosts(newLikedPosts);
-    setLikeCounts(newLikeCounts);
+    try {
+      const result = await LikesService.toggleLike(
+        address,
+        'post',
+        post.tokenId,
+        post.author // Pass post owner address for notifications
+      );
+
+      // Update local state
+      const newLikedPosts = new Set(likedPosts);
+      const newLikeCounts = { ...likeCounts };
+
+      if (result.liked) {
+        newLikedPosts.add(post.tokenId);
+        toast.success(`❤️ You liked NFT #${post.tokenId}!`, { duration: 2000 });
+      } else {
+        newLikedPosts.delete(post.tokenId);
+        toast.success(`💔 Unliked NFT #${post.tokenId}`, { duration: 2000 });
+      }
+
+      newLikeCounts[post.tokenId] = result.count;
+      setLikedPosts(newLikedPosts);
+      setLikeCounts(newLikeCounts);
+    } catch (error) {
+      console.error('Error toggling like:', error);
+      toast.error('Failed to update like');
+    }
   };
 
   const handleShare = (post: Post) => {
@@ -89,33 +141,89 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ isLoading, posts, onRefre
     onRefresh();
   };
 
-  const handleCancelSell = async (post: Post) => {
+  const handleBuy = async (post: Post) => {
     if (!account) {
-      toast.error('Please connect your wallet to cancel listing');
+      toast.error('🔐 Please connect your wallet to buy NFT');
       return;
     }
 
+    let loadingToast: string | number | undefined;
+
     try {
-      toast.loading('Canceling listing...');
+      loadingToast = toast.loading('💳 Processing purchase...');
+      const txHash = await buyPost(account, post.tokenId);
+
+      // Dismiss loading toast before showing success
+      if (loadingToast) {
+        toast.dismiss(loadingToast);
+      }
+
+      toast.success(`🎉 Successfully bought NFT #${post.tokenId}! 🚀`);
+
+      // Refresh posts to update the feed
+      onRefresh();
+    } catch (error) {
+      console.error('Error buying NFT:', error);
+
+      // Dismiss loading toast before showing error
+      if (loadingToast) {
+        toast.dismiss(loadingToast);
+      }
+
+      const errorMessage = error instanceof Error ? error.message : 'Failed to buy NFT';
+
+      // Check for specific error types
+      if (errorMessage.includes('Insufficient STRK balance') || errorMessage.includes('insufficient') || errorMessage.includes('balance')) {
+        toast.error(`❌ Insufficient STRK balance to buy NFT #${post.tokenId}`);
+      } else if (errorMessage.includes('rejected') || errorMessage.includes('denied')) {
+        toast.error('❌ Transaction rejected by user');
+      } else if (errorMessage.includes('network') || errorMessage.includes('connection')) {
+        toast.error('❌ Network error. Please try again');
+      } else {
+        toast.error(`❌ Failed to buy NFT #${post.tokenId}: ${errorMessage}`);
+      }
+    }
+  };
+
+  const handleCancelSell = async (post: Post) => {
+    if (!account) {
+      toast.error('🔐 Please connect your wallet to cancel listing');
+      return;
+    }
+
+    let loadingToast: string | number | undefined;
+
+    try {
+      loadingToast = toast.loading('🔄 Canceling listing...');
       // Note: cancelSell typically takes a proposal ID, but we'll use tokenId for now
       // This might need adjustment based on your contract implementation
       const txHash = await cancelSell(account, post.tokenId);
-      toast.dismiss();
-      toast.success(`🎉 Listing canceled for NFT #${post.tokenId}!`);
+
+      // Dismiss loading toast before showing success
+      if (loadingToast) {
+        toast.dismiss(loadingToast);
+      }
+
+      toast.success(`✅ Listing canceled for NFT #${post.tokenId}!`);
 
       // Refresh posts to update the feed
       onRefresh();
     } catch (error) {
       console.error('Error canceling listing:', error);
-      toast.dismiss();
-      toast.error('Failed to cancel listing. Please try again.');
+
+      // Dismiss loading toast before showing error
+      if (loadingToast) {
+        toast.dismiss(loadingToast);
+      }
+
+      toast.error('❌ Failed to cancel listing. Please try again.');
     }
   };
 
   const handleChat = (post: Post) => {
     // Navigate to chat with the post owner (current owner, not author)
     const ownerAddress = post.currentOwner;
-    const ownerName = `${ownerAddress.slice(0, 6)}...${ownerAddress.slice(-4)}.stark`;
+    const ownerName = `${ownerAddress.slice(0, 6)}...${ownerAddress.slice(-4)}`;
 
     // Store chat info in localStorage for the chat page to pick up
     localStorage.setItem('chatTarget', JSON.stringify({
@@ -182,12 +290,13 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ isLoading, posts, onRefre
                   onLike={handleLike}
                   onShare={handleShare}
                   onSell={handleSell}
+                  onBuy={handleBuy}
                   onCancelSell={handleCancelSell}
                   onChat={handleChat}
                   onSwapClick={handleSwapPropose}
                   showSwapButton={post.isSwappable}
                   isLiked={likedPosts.has(post.tokenId)}
-                  likeCount={likeCounts[post.tokenId] || Math.floor(Math.random() * 5) + 1}
+                  likeCount={likeCounts[post.tokenId] || 0}
                   isOwner={isOwner}
                   isForSale={post.isForSale || false}
                 />

@@ -14,6 +14,7 @@ import { useAccount } from '@starknet-react/core';
 import PostCard from '@/components/Feed/PostCard';
 import SellModal from '@/components/Modals/SellModal';
 import { toast } from 'react-hot-toast';
+import { LikesService } from '@/services/chatService';
 
 const BrowseSwaps: React.FC = () => {
   const { state } = useAppContext();
@@ -31,6 +32,40 @@ const BrowseSwaps: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [targetTokenId, setTargetTokenId] = useState<string | null>(null);
   const [mySelectedTokenId, setMySelectedTokenId] = useState<string | null>(null);
+
+  // Load initial like data
+  useEffect(() => {
+    const loadLikeData = async () => {
+      if (!address || !swappablePosts.length) return;
+
+      try {
+        const likePromises = swappablePosts.map(async (post) => {
+          const [isLiked, count] = await Promise.all([
+            LikesService.hasUserLiked(address, 'post', post.tokenId),
+            LikesService.getLikeCount('post', post.tokenId)
+          ]);
+          return { tokenId: post.tokenId, isLiked, count };
+        });
+
+        const likeData = await Promise.all(likePromises);
+
+        const newLikedPosts = new Set<string>();
+        const newLikeCounts: { [key: string]: number } = {};
+
+        likeData.forEach(({ tokenId, isLiked, count }) => {
+          if (isLiked) newLikedPosts.add(tokenId);
+          newLikeCounts[tokenId] = count;
+        });
+
+        setLikedPosts(newLikedPosts);
+        setLikeCounts(newLikeCounts);
+      } catch (error) {
+        console.error('Error loading like data:', error);
+      }
+    };
+
+    loadLikeData();
+  }, [address, swappablePosts]);
   const myPosts = state.userPosts || [];
 
   useEffect(() => {
@@ -62,22 +97,38 @@ const BrowseSwaps: React.FC = () => {
     setDialogOpen(false);
   };
 
-  const handleLike = (post: Post) => {
-    const newLikedPosts = new Set(likedPosts);
-    const newLikeCounts = { ...likeCounts };
-
-    if (likedPosts.has(post.tokenId)) {
-      newLikedPosts.delete(post.tokenId);
-      newLikeCounts[post.tokenId] = Math.max(0, (newLikeCounts[post.tokenId] || 0) - 1);
-      toast.success('💔 Unliked');
-    } else {
-      newLikedPosts.add(post.tokenId);
-      newLikeCounts[post.tokenId] = (newLikeCounts[post.tokenId] || 0) + 1;
-      toast.success('❤️ Liked!');
+  const handleLike = async (post: Post) => {
+    if (!address) {
+      toast.error('Please connect your wallet to like posts');
+      return;
     }
 
-    setLikedPosts(newLikedPosts);
-    setLikeCounts(newLikeCounts);
+    try {
+      const result = await LikesService.toggleLike(
+        address,
+        'post',
+        post.tokenId,
+        post.author
+      );
+
+      const newLikedPosts = new Set(likedPosts);
+      const newLikeCounts = { ...likeCounts };
+
+      if (result.liked) {
+        newLikedPosts.add(post.tokenId);
+        toast.success('❤️ Liked!');
+      } else {
+        newLikedPosts.delete(post.tokenId);
+        toast.success('💔 Unliked');
+      }
+
+      newLikeCounts[post.tokenId] = result.count;
+      setLikedPosts(newLikedPosts);
+      setLikeCounts(newLikeCounts);
+    } catch (error) {
+      console.error('Error toggling like:', error);
+      toast.error('Failed to update like');
+    }
   };
 
   const handleShare = (post: Post) => {
@@ -150,8 +201,24 @@ const BrowseSwaps: React.FC = () => {
   };
 
   const handleChat = (post: Post) => {
-    // Simple placeholder for chat functionality in swaps
-    toast.success('Chat feature coming soon!');
+    // Navigate to chat with the post owner (current owner, not author)
+    const ownerAddress = post.currentOwner;
+    const ownerName = `${ownerAddress.slice(0, 6)}...${ownerAddress.slice(-4)}`;
+
+    // Store chat info in localStorage for the chat page to pick up
+    localStorage.setItem('chatTarget', JSON.stringify({
+      address: ownerAddress,
+      name: ownerName,
+      postId: post.tokenId
+    }));
+
+    // Navigate to chat page
+    if (onNavigate) {
+      onNavigate('Chats');
+      toast.success(`Opening chat with ${ownerName}`);
+    } else {
+      toast.success(`Chat info saved. Navigate to Chats to continue.`);
+    }
   };
 
   const hasMyPosts = useMemo(() => myPosts && myPosts.length > 0, [myPosts]);

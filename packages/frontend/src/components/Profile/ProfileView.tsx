@@ -10,6 +10,7 @@ import PostCard from '@/components/Feed/PostCard';
 import SellModal from '@/components/Modals/SellModal';
 import { toast } from 'react-hot-toast';
 import type { Post } from '@/context/AppContext';
+import { LikesService } from '@/services/chatService';
 
 interface ProfileViewProps {
   isConnected: boolean;
@@ -68,6 +69,40 @@ const ProfileView: React.FC<ProfileViewProps> = ({ isConnected, onNavigate }) =>
     }
   };
 
+  // Load initial like data
+  useEffect(() => {
+    const loadLikeData = async () => {
+      if (!address || !allUserNFTs.length) return;
+
+      try {
+        const likePromises = allUserNFTs.map(async (post) => {
+          const [isLiked, count] = await Promise.all([
+            LikesService.hasUserLiked(address, 'post', post.tokenId),
+            LikesService.getLikeCount('post', post.tokenId)
+          ]);
+          return { tokenId: post.tokenId, isLiked, count };
+        });
+
+        const likeData = await Promise.all(likePromises);
+
+        const newLikedPosts = new Set<string>();
+        const newLikeCounts: { [key: string]: number } = {};
+
+        likeData.forEach(({ tokenId, isLiked, count }) => {
+          if (isLiked) newLikedPosts.add(tokenId);
+          newLikeCounts[tokenId] = count;
+        });
+
+        setLikedPosts(newLikedPosts);
+        setLikeCounts(newLikeCounts);
+      } catch (error) {
+        console.error('Error loading like data:', error);
+      }
+    };
+
+    loadLikeData();
+  }, [address, allUserNFTs]);
+
   useEffect(() => {
     if (isConnected && address) {
       // Only fetch user NFTs, don't call refreshUserData to avoid conflicts
@@ -76,22 +111,38 @@ const ProfileView: React.FC<ProfileViewProps> = ({ isConnected, onNavigate }) =>
     }
   }, [isConnected, address]);
 
-  const handleLike = (post: Post) => {
-    const newLikedPosts = new Set(likedPosts);
-    const newLikeCounts = { ...likeCounts };
-
-    if (likedPosts.has(post.tokenId)) {
-      newLikedPosts.delete(post.tokenId);
-      newLikeCounts[post.tokenId] = Math.max(0, (newLikeCounts[post.tokenId] || 0) - 1);
-      toast.success('💔 Unliked');
-    } else {
-      newLikedPosts.add(post.tokenId);
-      newLikeCounts[post.tokenId] = (newLikeCounts[post.tokenId] || 0) + 1;
-      toast.success('❤️ Liked!');
+  const handleLike = async (post: Post) => {
+    if (!address) {
+      toast.error('Please connect your wallet to like posts');
+      return;
     }
 
-    setLikedPosts(newLikedPosts);
-    setLikeCounts(newLikeCounts);
+    try {
+      const result = await LikesService.toggleLike(
+        address,
+        'post',
+        post.tokenId,
+        post.author
+      );
+
+      const newLikedPosts = new Set(likedPosts);
+      const newLikeCounts = { ...likeCounts };
+
+      if (result.liked) {
+        newLikedPosts.add(post.tokenId);
+        toast.success('❤️ Liked!');
+      } else {
+        newLikedPosts.delete(post.tokenId);
+        toast.success('💔 Unliked');
+      }
+
+      newLikeCounts[post.tokenId] = result.count;
+      setLikedPosts(newLikedPosts);
+      setLikeCounts(newLikeCounts);
+    } catch (error) {
+      console.error('Error toggling like:', error);
+      toast.error('Failed to update like');
+    }
   };
 
   const handleSell = (post: Post) => {

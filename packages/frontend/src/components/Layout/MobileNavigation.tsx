@@ -20,6 +20,7 @@ interface MobileNavigationProps {
   onCreatePost?: () => void;
   canCreatePost?: boolean;
   notificationCount?: number;
+  chatCount?: number;
 }
 
 const MobileNavigation: React.FC<MobileNavigationProps> = ({
@@ -27,7 +28,8 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
   onTabChange,
   onCreatePost,
   canCreatePost = false,
-  notificationCount = 0,
+  notificationCount,
+  chatCount,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -165,7 +167,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
               </div>
               
               <div className="space-y-2">
-                {/* Marketplace */}
+                {/* Chats */}
                 <Button
                   variant="ghost"
                   onClick={() => handleTabClick({ id: 'Chats' })}
@@ -173,6 +175,11 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                 >
                   <MessageCircle className="w-4 h-4 mr-3" />
                   Chats
+                  {chatCount > 0 && (
+                    <Badge className="ml-auto bg-green-500 text-white">
+                      {chatCount > 99 ? '99+' : chatCount}
+                    </Badge>
+                  )}
                 </Button>
 
                 {/* Marketplace */}
@@ -214,8 +221,8 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                   <Bell className="w-4 h-4 mr-3" />
                   Notifications
                   {notificationCount > 0 && (
-                    <Badge className="ml-auto bg-primary text-primary-foreground">
-                      {notificationCount}
+                    <Badge className="ml-auto bg-sky-500 text-white">
+                      {notificationCount > 99 ? '99+' : notificationCount}
                     </Badge>
                   )}
                 </Button>

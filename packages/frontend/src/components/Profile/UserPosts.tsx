@@ -9,6 +9,7 @@ import { useStarknetWallet } from '@/hooks/useStarknetWallet';
 import { usePostNFT } from '@/hooks/usePostNFT';
 import { getAllPosts } from '@/services/contract';
 import type { Post } from '@/context/AppContext';
+import { LikesService } from '@/services/chatService';
 
 const UserPosts: React.FC = () => {
   const { address, isConnected } = useStarknetWallet();
@@ -17,6 +18,40 @@ const UserPosts: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
+
+  // Load initial like data
+  useEffect(() => {
+    const loadLikeData = async () => {
+      if (!address || !posts.length) return;
+
+      try {
+        const likePromises = posts.map(async (post) => {
+          const [isLiked, count] = await Promise.all([
+            LikesService.hasUserLiked(address, 'post', post.tokenId),
+            LikesService.getLikeCount('post', post.tokenId)
+          ]);
+          return { tokenId: post.tokenId, isLiked, count };
+        });
+
+        const likeData = await Promise.all(likePromises);
+
+        const newLikedPosts = new Set<string>();
+        const newLikeCounts: { [key: string]: number } = {};
+
+        likeData.forEach(({ tokenId, isLiked, count }) => {
+          if (isLiked) newLikedPosts.add(tokenId);
+          newLikeCounts[tokenId] = count;
+        });
+
+        setLikedPosts(newLikedPosts);
+        setLikeCounts(newLikeCounts);
+      } catch (error) {
+        console.error('Error loading like data:', error);
+      }
+    };
+
+    loadLikeData();
+  }, [address, posts]);
 
   const loadUserNFTs = async () => {
     if (!address) return;
@@ -43,22 +78,38 @@ const UserPosts: React.FC = () => {
     }
   }, [isConnected, address]);
 
-  const handleLike = (post: Post) => {
-    const newLikedPosts = new Set(likedPosts);
-    const newLikeCounts = { ...likeCounts };
-    
-    if (likedPosts.has(post.tokenId)) {
-      newLikedPosts.delete(post.tokenId);
-      newLikeCounts[post.tokenId] = Math.max(0, (newLikeCounts[post.tokenId] || 0) - 1);
-      toast.success('💔 Unliked');
-    } else {
-      newLikedPosts.add(post.tokenId);
-      newLikeCounts[post.tokenId] = (newLikeCounts[post.tokenId] || 0) + 1;
-      toast.success('❤️ Liked!');
+  const handleLike = async (post: Post) => {
+    if (!address) {
+      toast.error('Please connect your wallet to like posts');
+      return;
     }
-    
-    setLikedPosts(newLikedPosts);
-    setLikeCounts(newLikeCounts);
+
+    try {
+      const result = await LikesService.toggleLike(
+        address,
+        'post',
+        post.tokenId,
+        post.author
+      );
+
+      const newLikedPosts = new Set(likedPosts);
+      const newLikeCounts = { ...likeCounts };
+
+      if (result.liked) {
+        newLikedPosts.add(post.tokenId);
+        toast.success('❤️ Liked!');
+      } else {
+        newLikedPosts.delete(post.tokenId);
+        toast.success('💔 Unliked');
+      }
+
+      newLikeCounts[post.tokenId] = result.count;
+      setLikedPosts(newLikedPosts);
+      setLikeCounts(newLikeCounts);
+    } catch (error) {
+      console.error('Error toggling like:', error);
+      toast.error('Failed to update like');
+    }
   };
 
   const handleShare = (post: Post) => {
@@ -176,7 +227,7 @@ const UserPosts: React.FC = () => {
                 onSwapClick={handleSellProposal}
                 showSwapButton={true}
                 isLiked={likedPosts.has(post.tokenId)}
-                likeCount={likeCounts[post.tokenId] || Math.floor(Math.random() * 10) + 1}
+                likeCount={likeCounts[post.tokenId] || 0}
               />
             ))}
           </div>

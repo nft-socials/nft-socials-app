@@ -3,7 +3,7 @@ import { WalletProvider } from '@/context/WalletContext';
 import { AppProvider, useAppContext } from '@/context/AppContext';
 import '@/styles/content-protection.css';
 import { useAccount } from '@starknet-react/core';
-import { Toaster } from '@/components/ui/sonner';
+import { Toaster, toast } from '@/components/ui/sonner';
 import Header from '@/components/Layout/Header';
 import MobileNavigation from '@/components/Layout/MobileNavigation';
 import DesktopNavigation from '@/components/Layout/DesktopNavigation';
@@ -16,9 +16,13 @@ import MarketplaceGrid from '@/components/Marketplace/MarketplaceGrid';
 import ChatsPage from '@/components/Chat/ChatsPage';
 import WalletPage from '@/components/Wallet/WalletPage';
 import UserPosts from '@/components/Profile/UserPosts';
+import NotificationDropdown from '@/components/Notifications/NotificationDropdown';
+import NotificationsPage from '@/components/Notifications/NotificationsPage';
+import { useNotificationCounts } from '@/hooks/useNotificationCounts';
 
 const IndexContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'feed' | 'Chats' | 'profile' | 'marketplace' | 'swaps' | 'user-nfts' | 'wallet' | 'notifications'>('feed');
+  const { counts, refreshCounts } = useNotificationCounts();
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab as typeof activeTab);
@@ -84,11 +88,32 @@ const IndexContent: React.FC = () => {
     setShowCreateModal(true);
   };
 
-  const handlePostSuccess = () => {
+  const handlePostSuccess = async () => {
     // Redirect to home feed after successful post
     setActiveTab('feed');
-    // Refresh the feed to show the new post
-    refreshFeed();
+
+    // Show confirming message
+    const loadingToast = toast.loading('🔄 Confirming post on blockchain...');
+
+    // Wait a moment then refresh to fetch new post
+    setTimeout(async () => {
+      // Dismiss the first loading toast
+      if (loadingToast) {
+        toast.dismiss(loadingToast);
+      }
+
+      const fetchingToast = toast.loading('📡 Fetching latest posts...');
+
+      // Refresh the feed to show the new post
+      await refreshFeed();
+
+      // Dismiss the fetching toast
+      if (fetchingToast) {
+        toast.dismiss(fetchingToast);
+      }
+
+      toast.success('🎉 Post confirmed and visible in feed!');
+    }, 2000);
   };
 
 
@@ -112,6 +137,8 @@ const IndexContent: React.FC = () => {
       <DesktopNavigation
         activeTab={activeTab}
         onTabChange={handleTabChange}
+        notificationCount={counts.notifications > 0 ? counts.notifications : undefined}
+        chatCount={counts.chats > 0 ? counts.chats : undefined}
       />
 
       <MobileNavigation
@@ -119,6 +146,8 @@ const IndexContent: React.FC = () => {
         onTabChange={handleTabChange}
         onCreatePost={handleCreatePost}
         canCreatePost={isConnected && !state.hasPostedToday}
+        notificationCount={counts.notifications > 0 ? counts.notifications : undefined}
+        chatCount={counts.chats > 0 ? counts.chats : undefined}
       />
 
       <div className="container mx-auto px-2 sm:px-4 max-w-4xl">
@@ -131,13 +160,18 @@ const IndexContent: React.FC = () => {
                 onNavigate={handleTabChange}
               />
             )}
-            {activeTab === 'Chats' && <ChatsPage />}
+            {activeTab === 'Chats' && <ChatsPage onChatCountChange={refreshCounts} />}
             {activeTab === 'marketplace' && <MarketplaceGrid onNavigate={handleTabChange} />}
             {activeTab === 'swaps' && <BrowseSwaps />}
             {activeTab === 'profile' && <ProfileView isConnected={isConnected} onNavigate={handleTabChange} />}
             {activeTab === 'user-nfts' && <UserPosts />}
             {activeTab === 'wallet' && <WalletPage />}
-            {activeTab === 'notifications' && <div className="text-center py-8 md:py-20 md:mt-20 border-2 border-border rounded-xl">Notifications coming soon!</div>}
+            {activeTab === 'notifications' && (
+              <NotificationsPage
+                onNavigate={handleTabChange}
+                onNotificationCountChange={refreshCounts}
+              />
+            )}
           </main>
         </div>
 
