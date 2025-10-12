@@ -67,9 +67,7 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ isLoading, posts, onRefre
     );
 
     if (loadingPosts.length > 0) {
-      console.log(`Found ${loadingPosts.length} posts still loading from IPFS, will retry in 5 seconds`);
       const timer = setTimeout(() => {
-        console.log('Retrying to load IPFS content...');
         onRefresh();
       }, 5000); // Retry after 5 seconds
 

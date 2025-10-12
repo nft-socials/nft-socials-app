@@ -9,7 +9,6 @@ export interface PostMetadata {
 // NOTE: Uploading to IPFS requires a pinning service. Provide your own endpoint/token.
 // Throwing here ensures no silent mock behavior.
 export async function storeOnIPFS(metadata: PostMetadata): Promise<string> {
-  console.log('storeOnIPFS called with metadata:', metadata);
 
   // WARNING: Using a JWT in client code exposes it to users. Prefer storing in Supabase Edge Function secrets.
   const PINATA_JWT =
@@ -19,8 +18,6 @@ export async function storeOnIPFS(metadata: PostMetadata): Promise<string> {
   const runtimeJwt = (globalThis as any)?.PINATA_JWT || localStorage.getItem('PINATA_JWT');
   const jwt = runtimeJwt || PINATA_JWT;
 
-  console.log('Using JWT for IPFS upload (first 20 chars):', jwt.substring(0, 20) + '...');
-
   const requestBody = {
     pinataContent: metadata,
     pinataMetadata: {
@@ -29,7 +26,6 @@ export async function storeOnIPFS(metadata: PostMetadata): Promise<string> {
     pinataOptions: { cidVersion: 1 },
   };
 
-  console.log('IPFS request body:', requestBody);
 
   const res = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
     method: 'POST',
@@ -40,8 +36,6 @@ export async function storeOnIPFS(metadata: PostMetadata): Promise<string> {
     body: JSON.stringify(requestBody),
   });
 
-  console.log('IPFS response status:', res.status);
-
   if (!res.ok) {
     const errText = await res.text();
     console.error('IPFS upload failed:', res.status, errText);
@@ -49,7 +43,6 @@ export async function storeOnIPFS(metadata: PostMetadata): Promise<string> {
   }
 
   const data = (await res.json()) as { IpfsHash: string };
-  console.log('IPFS upload successful:', data);
   return data.IpfsHash;
 }
 

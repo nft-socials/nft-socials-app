@@ -17,7 +17,6 @@ const App = () => {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
         .then((registration) => {
-          console.log('Service Worker registered:', registration);
           toast.success('App is ready for offline use!');
         })
         .catch((error) => {

@@ -55,7 +55,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({ isConnected, onNavigate }) =>
     try {
       // Get sold NFTs from localStorage (where we track sales)
       const allSoldNFTs = await getUserSoldNFTs(address);
-      console.log(allSoldNFTs)
       // Filter to only show NFTs sold by the current user
       // const userSoldNFTs = allSoldNFTs.filter(nft =>
       //   nft.author && nft.author.toLowerCase() === address.toLowerCase()
@@ -194,8 +193,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({ isConnected, onNavigate }) =>
       </Card>
     );
   }
-
-  console.log({soldNFTs})
 
   return (
     <Card className="bg-card/60 border-border/60 md:mt-10">

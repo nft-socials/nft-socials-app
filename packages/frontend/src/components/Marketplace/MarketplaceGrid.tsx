@@ -172,7 +172,6 @@ const MarketplaceGrid: React.FC<MarketplaceGridProps> = ({ onNavigate }) => {
     try {
       toast.loading('💳 Processing purchase...', { duration: 0 });
       const txHash = await buyPost(account, post.tokenId);
-      console.log('Purchase successful, transaction hash:', txHash);
       toast.dismiss();
       toast.success(`🎉 Successfully purchased NFT #${post.tokenId}! 🚀`, { duration: 4000 });
 
@@ -282,8 +281,6 @@ const MarketplaceGrid: React.FC<MarketplaceGridProps> = ({ onNavigate }) => {
     }
     return matchesSearch && matchesFilter;
   });
-
-  console.log({posts, filteredPosts})
 
 
   return (

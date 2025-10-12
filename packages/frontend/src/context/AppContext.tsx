@@ -189,7 +189,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       const posts = await getAllPosts(0, FEED_PAGE_SIZE);
-      console.log('Refreshed posts from contract:', posts);
       dispatch({ type: 'SET_POSTS', payload: posts });
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: 'Failed to load feed' });

@@ -57,10 +57,8 @@ const PostCard: React.FC<PostCardProps> = ({
       if (post.contentHash) {
         setIsLoadingMetadata(true);
         try {
-          console.log('Fetching metadata for post:', post.tokenId, 'hash:', post.contentHash);
           const data = await getFromIPFS<PostMetadata>(post.contentHash);
           if (data) {
-            console.log('Fetched metadata:', data);
             setMetadata(data);
           }
         } catch (error) {
@@ -141,7 +139,6 @@ const PostCard: React.FC<PostCardProps> = ({
     () => onLike?.(post),
     () => isPostOwner ? onSell?.(post) : onShare?.(post),
     () => onSwapClick?.(post),
-    () => console.log('Bookmarked:', post.tokenId)
   );
 
   const getSwapStatus = () => {
