@@ -1,6 +1,6 @@
 import { useSwipeable } from 'react-swipeable';
 import { useCallback } from 'react';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 export interface SwipeGestureOptions {
   onSwipeLeft?: () => void;

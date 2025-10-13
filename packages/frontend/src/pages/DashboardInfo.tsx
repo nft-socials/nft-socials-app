@@ -4,8 +4,23 @@ import { ArrowRight, Sparkles, Zap } from "lucide-react";
 import { useStarknetWallet } from "@/hooks/useStarknetWallet";
 import React from "react";
 
-const DashboardInfo = () => {
+interface DashboardInfoProps {
+  onComplete?: () => void;
+}
+
+const DashboardInfo: React.FC<DashboardInfoProps> = ({ onComplete }) => {
   const { isConnected, connectWallet } = useStarknetWallet();
+
+  const handleGetStarted = () => {
+    if (onComplete) {
+      // If onComplete is provided, dismiss hero section and enter guest mode
+      onComplete();
+    } else {
+      // Fallback to connect wallet for backward compatibility
+      connectWallet();
+    }
+  };
+
   return (
     <div>
       <div className="mt-16 max-w-4xl mx-auto">
@@ -56,12 +71,12 @@ const DashboardInfo = () => {
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                 {!isConnected ? (
                   <Button
-                    onClick={() => connectWallet()}
+                    onClick={handleGetStarted}
                     size="lg"
                     className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 text-lg animate-scale-in"
                   >
                     <Sparkles className="w-5 h-5 mr-2" />
-                    Connect Wallet
+                    Get Started
                   </Button>
                 ) : (
                   <Button

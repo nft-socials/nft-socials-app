@@ -1,6 +1,7 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { InjectedConnector, StarknetConfig, argent, braavos, publicProvider, starkscan } from '@starknet-react/core';
 import { sepolia, mainnet } from '@starknet-react/chains';
+import { XverseConnector } from '../services/web3/xverse';
 
 interface WalletContextType {
   // Add any additional wallet-related state or functions here
@@ -23,7 +24,8 @@ interface WalletProviderProps {
 export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
   const chains = [sepolia, mainnet];
   const provider = publicProvider();
-   const connectors: InjectedConnector[] = [argent(), braavos()];
+
+  const connectors: InjectedConnector[] = [argent(), braavos(), new XverseConnector()];
 
   const value: WalletContextType = {
     // Add wallet-related state and functions here

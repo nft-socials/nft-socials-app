@@ -2,7 +2,7 @@ import { Contract, Provider, AccountInterface } from 'starknet';
 import type { Post as AppPost } from '@/context/AppContext';
 import deployedContracts from '../../contracts/deployedContracts';
 import { universalStrkAddress, strkAbi } from '../../utils/Constants';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 // Get contract info from deployedContracts
 const CONTRACT_INFO = deployedContracts.sepolia.OnePostDaily;

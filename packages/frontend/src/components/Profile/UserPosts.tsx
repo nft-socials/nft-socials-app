@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { RefreshCw, Loader2, Gem, Calendar, TrendingUp } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import PostCard from '@/components/Feed/PostCard';
 import { useStarknetWallet } from '@/hooks/useStarknetWallet';
 import { usePostNFT } from '@/hooks/usePostNFT';

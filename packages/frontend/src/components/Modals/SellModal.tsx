@@ -9,7 +9,7 @@ import { Gem, DollarSign, Tag, Loader2 } from 'lucide-react';
 import { Post } from '@/context/AppContext';
 import { useAccount } from '@starknet-react/core';
 import { proposeSell } from '@/services/contract';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 interface SellModalProps {
   isOpen: boolean;

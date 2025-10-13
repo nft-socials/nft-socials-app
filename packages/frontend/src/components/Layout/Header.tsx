@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Wallet, LogOut, Plus, Gem } from 'lucide-react';
-import { useStarknetWallet } from '@/hooks/useStarknetWallet';
+import { useAccount, useDisconnect } from '@starknet-react/core';
+import { useGuestBrowsing } from '@/context/GuestBrowsingContext';
+import WalletSelectionModal from '@/components/Wallet/WalletSelectionModal';
 
 interface HeaderProps {
   onCreatePost: () => void;
@@ -11,10 +13,23 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ onCreatePost, canCreatePost }) => {
-  const { isConnected, address, connectWallet, disconnectWallet, isConnecting } = useStarknetWallet();
+  const { address } = useAccount();
+  const { disconnect } = useDisconnect();
+  const { isGuestMode } = useGuestBrowsing();
+  const [showWalletModal, setShowWalletModal] = useState(false);
+
+  const isConnected = !!address;
 
   const truncateAddress = (addr: string) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  };
+
+  const handleConnectWallet = () => {
+    setShowWalletModal(true);
+  };
+
+  const handleDisconnectWallet = () => {
+    disconnect();
   };
 
   return (
@@ -54,7 +69,7 @@ const Header: React.FC<HeaderProps> = ({ onCreatePost, canCreatePost }) => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={disconnectWallet}
+                  onClick={handleDisconnectWallet}
                   className="hover:bg-destructive hover:text-destructive-foreground"
                 >
                   <LogOut className="w-4 h-4 mr-2" />
@@ -63,17 +78,22 @@ const Header: React.FC<HeaderProps> = ({ onCreatePost, canCreatePost }) => {
               </div>
             ) : (
               <Button
-                onClick={() => connectWallet()}
-                disabled={isConnecting}
+                onClick={handleConnectWallet}
                 className="bg-primary hover:bg-primary/90 animate-scale-in"
               >
                 <Wallet className="w-4 h-4 mr-2" />
-                {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+                Connect Wallet
               </Button>
             )}
           </div>
         </div>
       </div>
+
+      <WalletSelectionModal
+        isOpen={showWalletModal}
+        onClose={() => setShowWalletModal(false)}
+        onSuccess={() => setShowWalletModal(false)}
+      />
     </Card>
   );
 };

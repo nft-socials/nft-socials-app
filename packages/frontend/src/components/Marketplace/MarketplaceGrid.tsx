@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RefreshCw, Loader2, ShoppingCart, Search, Filter } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { getAllPosts, getAllPostsForSale, buyPost, cancelSell, getSoldNFTs, getAllSoldNFTs } from '@/services/contract';
 import PostCard from '@/components/Feed/PostCard';
 import SellModal from '@/components/Modals/SellModal';
@@ -189,8 +189,12 @@ const MarketplaceGrid: React.FC<MarketplaceGridProps> = ({ onNavigate }) => {
     } catch (error: any) {
       console.error('Error buying NFT:', error);
       toast.dismiss();
-      const errorMessage = error?.message || 'Failed to purchase NFT';
-      toast.error(`❌ ${errorMessage}`, { duration: 4000 });
+      if (error.message && error.message.includes('Insufficient STRK balance')) {
+        toast.error('❌ Insufficient STRK balance to complete the purchase.', { duration: 4000 });
+      } else {
+        const errorMessage = error?.message || 'Failed to purchase NFT';
+        toast.error(`❌ ${errorMessage}`, { duration: 4000 });
+      }
     }
   };
 

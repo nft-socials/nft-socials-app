@@ -9,7 +9,7 @@ import { Smile, Send, Camera, Image, Gem, Sparkles, SparklesIcon } from 'lucide-
 import { useAppContext } from '@/context/AppContext';
 import { useCamera } from '@/hooks/useCamera';
 import { usePostNFT } from '@/hooks/usePostNFT';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import EmojiPickerComponent from './EmojiPicker';
 
 interface CreatePostModalProps {

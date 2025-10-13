@@ -13,7 +13,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAccount } from '@starknet-react/core';
 import PostCard from '@/components/Feed/PostCard';
 import SellModal from '@/components/Modals/SellModal';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { LikesService } from '@/services/chatService';
 
 const BrowseSwaps: React.FC = () => {

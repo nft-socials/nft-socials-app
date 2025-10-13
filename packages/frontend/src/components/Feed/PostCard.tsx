@@ -6,6 +6,7 @@ import { Clock, Sparkles, ArrowUpDown, Heart, Tag, Image as ImageIcon, ShoppingC
 import { Post } from '@/context/AppContext';
 import { usePostSwipeActions } from '@/hooks/useSwipeGestures';
 import { getFromIPFS, PostMetadata } from '@/services/ipfs';
+import { useProtectedAction } from '@/context/GuestBrowsingContext';
 import { useAccount } from '@starknet-react/core';
 import ImageZoomModal from '@/components/Modals/ImageZoomModal';
 import { formatTimeAgo } from '@/utils/timeUtils';
@@ -50,6 +51,7 @@ const PostCard: React.FC<PostCardProps> = ({
   const [showChatOption, setShowChatOption] = useState(false);
   const [showImageZoom, setShowImageZoom] = useState(false);
   const { address } = useAccount();
+  const { executeProtectedAction } = useProtectedAction();
 
   // Fetch IPFS metadata to get image and full content
   useEffect(() => {
@@ -84,8 +86,10 @@ const PostCard: React.FC<PostCardProps> = ({
   const isPostOwner = address && post.currentOwner.toLowerCase() === address.toLowerCase();
 
   const handleBuyClick = () => {
-    setShowChatOption(true);
-    onBuy?.(post);
+    executeProtectedAction('buy_nft', () => {
+      setShowChatOption(true);
+      onBuy?.(post);
+    });
   };
 
   const handleChatClick = () => {
@@ -257,7 +261,7 @@ const PostCard: React.FC<PostCardProps> = ({
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => onLike?.(post)}
+                onClick={() => executeProtectedAction('like_post', () => onLike?.(post))}
                 className={`flex items-center gap-1 h-8 px-2 hover:bg-primary/10 transition-colors ${
                   isLiked ? 'text-primary' : 'text-muted-foreground hover:text-primary'
                 }`}
@@ -271,7 +275,7 @@ const PostCard: React.FC<PostCardProps> = ({
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => onSell?.(post)}
+                  onClick={() => executeProtectedAction('sell_nft', () => onSell?.(post))}
                   className="flex items-center gap-1 h-8 px-2 text-muted-foreground hover:text-green-500 hover:bg-green-500/10 transition-colors"
                 >
                   <Tag className="w-4 h-4" />

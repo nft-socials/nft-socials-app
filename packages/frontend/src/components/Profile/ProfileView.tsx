@@ -8,7 +8,7 @@ import { useAccount } from '@starknet-react/core';
 import { cancelSell, getAllPosts, getSoldNFTs, getUserSoldNFTs } from '@/services/contract';
 import PostCard from '@/components/Feed/PostCard';
 import SellModal from '@/components/Modals/SellModal';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import type { Post } from '@/context/AppContext';
 import { LikesService } from '@/services/chatService';
 
