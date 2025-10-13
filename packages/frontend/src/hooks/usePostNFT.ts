@@ -1,6 +1,6 @@
 import { useAccount } from '@starknet-react/core';
 import { useCallback, useState } from 'react';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import {
   createPost,
   proposeSell,

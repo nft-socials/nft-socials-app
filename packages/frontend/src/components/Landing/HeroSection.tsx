@@ -5,7 +5,11 @@ import { Sparkles, Shield, Coins } from 'lucide-react';
 
 import DashboardInfo from '@/pages/DashboardInfo';
 
-const HeroSection: React.FC = () => {
+interface HeroSectionProps {
+  onComplete?: () => void;
+}
+
+const HeroSection: React.FC<HeroSectionProps> = ({ onComplete }) => {
   const [animationStep, setAnimationStep] = useState(0);
 
   // Animation sequence for post to NFT transformation
@@ -38,7 +42,7 @@ const HeroSection: React.FC = () => {
             </p>
           </div>
 
-          <DashboardInfo />
+          <DashboardInfo onComplete={onComplete} />
 
 
           {/* Feature Cards */}

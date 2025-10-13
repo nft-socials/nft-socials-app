@@ -1,6 +1,6 @@
 import { useAccount, useConnect, useDisconnect } from '@starknet-react/core';
 import { useCallback, useEffect, useState } from 'react';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 export interface WalletState {
   isConnected: boolean;

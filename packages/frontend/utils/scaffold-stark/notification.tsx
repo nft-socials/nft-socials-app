@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { type Toast, ToastPosition, toast } from "react-hot-toast";
+import { type Toast, ToastPosition, toast } from "sonner";
 import { XMarkIcon } from "@heroicons/react/20/solid";
 import {
   CheckCircleIcon,

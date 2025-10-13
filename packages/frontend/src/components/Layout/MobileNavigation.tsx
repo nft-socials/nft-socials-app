@@ -107,10 +107,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                   }`}
                 >
                   <Icon className={`w-5 h-5 ${isCreateButton && canCreatePost ? 'animate-pulse-glow' : ''}`} />
-                  <span className="text-xs font-medium">{item.label}</span>
-                  {isActive && !isCreateButton && (
-                    <div className="w-1 h-1 rounded-full bg-success animate-pulse" />
-                  )}
+                  <span className="text-xs font-medium">{item.label}</span>                 
                 </Button>
               );
             })}

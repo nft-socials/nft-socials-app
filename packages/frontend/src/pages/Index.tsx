@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { WalletProvider } from '@/context/WalletContext';
 import { AppProvider, useAppContext } from '@/context/AppContext';
+import { GuestBrowsingProvider } from '@/context/GuestBrowsingContext';
 import '@/styles/content-protection.css';
 import { useAccount } from '@starknet-react/core';
 import { Toaster, toast } from '@/components/ui/sonner';
@@ -18,11 +19,13 @@ import WalletPage from '@/components/Wallet/WalletPage';
 import UserPosts from '@/components/Profile/UserPosts';
 import NotificationDropdown from '@/components/Notifications/NotificationDropdown';
 import NotificationsPage from '@/components/Notifications/NotificationsPage';
+import WalletPrompt from '@/components/Wallet/WalletPrompt';
 import { useNotificationCounts } from '@/hooks/useNotificationCounts';
 
 const IndexContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'feed' | 'Chats' | 'profile' | 'marketplace' | 'swaps' | 'user-nfts' | 'wallet' | 'notifications'>('feed');
   const { counts, refreshCounts } = useNotificationCounts();
+  const [showHeroSection, setShowHeroSection] = useState(false);
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab as typeof activeTab);
@@ -83,6 +86,21 @@ const IndexContent: React.FC = () => {
   const { isConnected } = useAccount();
   const { state, refreshFeed } = useAppContext();
 
+  // Check if user should see hero section
+  useEffect(() => {
+    const hasSeenHero = localStorage.getItem('hasSeenHeroSection');
+
+    // Show hero section if user hasn't seen it and is not connected
+    if (!hasSeenHero && !isConnected) {
+      setShowHeroSection(true);
+    }
+  }, [isConnected]);
+
+  const handleHeroSectionComplete = () => {
+    localStorage.setItem('hasSeenHeroSection', 'true');
+    setShowHeroSection(false);
+  };
+
   const handleCreatePost = () => {
     if (!isConnected) return;
     setShowCreateModal(true);
@@ -117,11 +135,11 @@ const IndexContent: React.FC = () => {
   };
 
 
-  // Show landing page if not connected
-  if (!isConnected) {
+  // Show hero section only once for new users
+  if (showHeroSection) {
     return (
       <div className="min-h-screen bg-background">
-        <HeroSection />
+        <HeroSection onComplete={handleHeroSectionComplete} />
         <Toaster />
       </div>
     );
@@ -151,7 +169,7 @@ const IndexContent: React.FC = () => {
       />
 
       <div className="container mx-auto px-2 sm:px-4 max-w-4xl">
-        <main className="animate-fade-in pb-24 md:pb-4 px-1 sm:px-0 pt-24 md:pt-44">
+        <main className="animate-fade-in pb-24 md:pb-4 px-1 sm:px-0 pt-10 md:pt-44">
             {activeTab === 'feed' && (
               <CommunityFeed
                 isLoading={state.isLoading}
@@ -189,9 +207,12 @@ const IndexContent: React.FC = () => {
 const Index = () => {
   return (
     <WalletProvider>
-      <AppProvider>
-        <IndexContent />
-      </AppProvider>
+      <GuestBrowsingProvider>
+        <AppProvider>
+          <IndexContent />
+          <WalletPrompt />
+        </AppProvider>
+      </GuestBrowsingProvider>
     </WalletProvider>
   );
 };
