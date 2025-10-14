@@ -9,20 +9,18 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
-    // Check if user has seen splash before
-    const hasSeenSplash = localStorage.getItem('hasSeenSplash');
-    
-    if (hasSeenSplash) {
-      // Skip splash for returning users
+    // Check if user has interacted with the dapp before
+    const hasInteracted = localStorage.getItem('hasInteractedWithDapp');
+
+    if (hasInteracted) {
+      // Skip splash for users who have interacted before
       onComplete();
       return;
     }
 
-    // Show splash for 2 seconds
+    // Show splash for 2 seconds for new users
     const timer = setTimeout(() => {
       setIsVisible(false);
-      // Mark that user has seen splash
-      localStorage.setItem('hasSeenSplash', 'true');
       // Wait for fade out animation
       setTimeout(onComplete, 300);
     }, 2000);
@@ -78,7 +76,6 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
       <button
         onClick={() => {
           setIsVisible(false);
-          localStorage.setItem('hasSeenSplash', 'true');
           setTimeout(onComplete, 100);
         }}
         className="absolute bottom-8 right-8 text-white/60 hover:text-white/80 text-sm transition-colors"

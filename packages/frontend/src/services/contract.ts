@@ -121,7 +121,7 @@ const toAppPost = async (p: any): Promise<AppPost> => {
     contentHash,
     content,
     timestamp: Number(BigInt(p.timestamp ?? Math.floor(Date.now() / 1000)) * 1000n),
-    isSwappable: Boolean(p.is_swappable ?? p.isSwappable ?? true),
+    isSwappable: Boolean(p.is_for_sale ?? p.isForSale ?? false),
     isForSale: Boolean(p.is_for_sale ?? p.isForSale ?? false),
     price: Number(p.price ?? 0),
   };

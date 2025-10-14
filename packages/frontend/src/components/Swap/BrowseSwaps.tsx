@@ -74,10 +74,10 @@ const BrowseSwaps: React.FC = () => {
       setError(null);
       try {
         const posts = await getAllPosts(0, FEED_PAGE_SIZE * 2);
-        const swappables = posts.filter((p) => Boolean(p.isSwappable)  );
-        setSwappablePosts(swappables);
+        const forSale = posts.filter((p) => Boolean(p.isForSale));
+        setSwappablePosts(forSale);
       } catch (e) {
-        setError('Failed to load swappable posts');
+        setError('Failed to load marketplace posts');
       } finally {
         setLoading(false);
       }
@@ -151,15 +151,15 @@ const BrowseSwaps: React.FC = () => {
 
   const handleSellSuccess = (post: Post, price: string) => {
     toast.success(`🎉 NFT #${post.tokenId} listed for ${price} STRK!`);
-    // Refresh swappable posts
+    // Refresh marketplace posts
     const load = async () => {
       setLoading(true);
       try {
         const posts = await getAllPosts(0, FEED_PAGE_SIZE * 2);
-        const swappables = posts.filter((p) => Boolean(p.isSwappable));
-        setSwappablePosts(swappables);
+        const forSale = posts.filter((p) => Boolean(p.isForSale));
+        setSwappablePosts(forSale);
       } catch (e) {
-        setError('Failed to load swappable posts');
+        setError('Failed to load marketplace posts');
       } finally {
         setLoading(false);
       }
@@ -179,15 +179,15 @@ const BrowseSwaps: React.FC = () => {
       toast.dismiss();
       toast.success(`🎉 Listing canceled for NFT #${post.tokenId}!`);
 
-      // Refresh swappable posts
+      // Refresh marketplace posts
       const load = async () => {
         setLoading(true);
         try {
           const posts = await getAllPosts(0, FEED_PAGE_SIZE * 2);
-          const swappable = posts.filter(post => post.isSwappable);
-          setSwappablePosts(swappable);
+          const forSale = posts.filter(post => post.isForSale);
+          setSwappablePosts(forSale);
         } catch (error) {
-          console.error('Error loading swappable posts:', error);
+          console.error('Error loading marketplace posts:', error);
         } finally {
           setLoading(false);
         }
@@ -227,17 +227,17 @@ const BrowseSwaps: React.FC = () => {
     <section aria-labelledby="browse-swaps-title">
       <Card className="p-4 bg-card/50 border-border/50">
         <header className="mb-4">
-          <h2 id="browse-swaps-title" className="text-lg font-semibold">Browse Swappable Posts</h2>
+          <h2 id="browse-swaps-title" className="text-lg font-semibold">Browse Marketplace</h2>
         </header>
 
         {loading && (
-          <div className="text-center py-8 text-muted-foreground">Loading swappable posts…</div>
+          <div className="text-center py-8 text-muted-foreground">Loading marketplace posts…</div>
         )}
         {error && (
           <div className="text-center py-8 text-destructive">{error}</div>
         )}
         {!loading && !error && swappablePosts.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground">No swappable posts available right now.</div>
+          <div className="text-center py-8 text-muted-foreground">No posts available for sale right now.</div>
         )}
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -250,8 +250,7 @@ const BrowseSwaps: React.FC = () => {
               onSell={handleSell}
               onCancelSell={handleCancelSell}
               onChat={handleChat}
-              onSwapClick={() => handleOpenDialog(post.tokenId)}
-              showSwapButton={hasMyPosts}
+
               isLiked={likedPosts.has(post.tokenId)}
               likeCount={likeCounts[post.tokenId] || 0}
               isOwner={address && post.author.toLowerCase() === address.toLowerCase()}
@@ -265,7 +264,7 @@ const BrowseSwaps: React.FC = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Select one of your posts</DialogTitle>
-            <DialogDescription>Choose the post you want to swap with token #{targetTokenId}</DialogDescription>
+            <DialogDescription>Direct buying is now available. Use the Buy button instead.</DialogDescription>
           </DialogHeader>
 
           <ScrollArea className="max-h-64 rounded-md border">
