@@ -96,8 +96,8 @@ All colors MUST be HSL.
     --popover: 0 0% 12%;
     --popover-foreground: 0 0% 100%;
 
-    --primary: 9 100% 64%; /* #FF6347 Tomato red */
-    --primary-foreground: 0 0% 100%;
+    --primary: 51 100% 50%; /* #FFD700 Gold */
+    --primary-foreground: 0 0% 0%;
 
     --secondary: 0 0% 20%;
     --secondary-foreground: 0 0% 100%;
@@ -119,19 +119,19 @@ All colors MUST be HSL.
 
     --border: 0 0% 20%;
     --input: 0 0% 20%;
-    --ring: 9 100% 64%;
+    --ring: 51 100% 50%;
 
     --radius: 0.75rem;
 
     /* Sidebar */
     --sidebar-background: 0 0% 7%;
     --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 9 100% 64%;
-    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-primary: 51 100% 50%;
+    --sidebar-primary-foreground: 0 0% 0%;
     --sidebar-accent: 195 100% 50%;
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 0 0% 20%;
-    --sidebar-ring: 9 100% 64%;
+    --sidebar-ring: 51 100% 50%;
 
     /* No gradients - solid colors only */
     --shadow-elev: 0 10px 30px -10px hsl(var(--primary) / 0.3);
@@ -148,8 +148,8 @@ All colors MUST be HSL.
     --popover: 0 0% 12%;
     --popover-foreground: 0 0% 100%;
 
-    --primary: 9 100% 64%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 51 100% 50%; /* #FFD700 Gold */
+    --primary-foreground: 0 0% 0%;
 
     --secondary: 0 0% 20%;
     --secondary-foreground: 0 0% 100%;
@@ -171,16 +171,16 @@ All colors MUST be HSL.
 
     --border: 0 0% 20%;
     --input: 0 0% 20%;
-    --ring: 9 100% 64%;
+    --ring: 51 100% 50%;
 
     --sidebar-background: 0 0% 7%;
     --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 9 100% 64%;
-    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-primary: 51 100% 50%;
+    --sidebar-primary-foreground: 0 0% 0%;
     --sidebar-accent: 195 100% 50%;
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 0 0% 20%;
-    --sidebar-ring: 9 100% 64%;
+    --sidebar-ring: 51 100% 50%;
   }
 }
 

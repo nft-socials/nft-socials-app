@@ -1,9 +1,16 @@
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode, useState, useCallback, useEffect } from 'react';
 import { InjectedConnector, StarknetConfig, argent, braavos, publicProvider, starkscan } from '@starknet-react/core';
 import { sepolia, mainnet } from '@starknet-react/chains';
+import { xverse, XverseConnector } from '../services/web3/xverse';
 
 interface WalletContextType {
-  // Add any additional wallet-related state or functions here
+  // Xverse connector for Bitcoin
+  xverseConnector: XverseConnector;
+  // Xverse wallet state
+  xverseAddress: string | null;
+  xversePublicKey: string | null;
+  isXverseConnected: boolean;
+  setXverseWallet: (address: string | null, publicKey: string | null) => void;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -23,10 +30,64 @@ interface WalletProviderProps {
 export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
   const chains = [sepolia, mainnet];
   const provider = publicProvider();
-   const connectors: InjectedConnector[] = [argent(), braavos()];
+
+  // Xverse wallet state
+  const [xverseAddress, setXverseAddress] = useState<string | null>(null);
+  const [xversePublicKey, setXversePublicKey] = useState<string | null>(null);
+
+  // Create Starknet connectors - argent() and braavos() work on both desktop and mobile
+  const connectors: InjectedConnector[] = [argent(), braavos()];
+
+  // Create Xverse connector separately (for Bitcoin, not Starknet)
+  const xverseConnector = xverse();
+
+  // Function to update Xverse wallet state
+  const setXverseWallet = useCallback((address: string | null, publicKey: string | null) => {
+    setXverseAddress(address);
+    setXversePublicKey(publicKey);
+
+    // Persist to localStorage
+    if (address) {
+      localStorage.setItem('xverse_address', address);
+      if (publicKey) {
+        localStorage.setItem('xverse_publicKey', publicKey);
+      }
+    } else {
+      localStorage.removeItem('xverse_address');
+      localStorage.removeItem('xverse_publicKey');
+    }
+  }, []);
+
+  // Check for existing connection on mount
+  useEffect(() => {
+    const checkExistingConnection = async () => {
+      // Check localStorage first
+      const savedAddress = localStorage.getItem('xverse_address');
+      const savedPublicKey = localStorage.getItem('xverse_publicKey');
+
+      if (savedAddress) {
+        // Verify the wallet is still connected
+        const currentAddress = await xverseConnector.getAddress();
+        if (currentAddress === savedAddress) {
+          setXverseAddress(savedAddress);
+          setXversePublicKey(savedPublicKey);
+        } else {
+          // Clear stale data
+          localStorage.removeItem('xverse_address');
+          localStorage.removeItem('xverse_publicKey');
+        }
+      }
+    };
+
+    checkExistingConnection();
+  }, [xverseConnector]);
 
   const value: WalletContextType = {
-    // Add wallet-related state and functions here
+    xverseConnector,
+    xverseAddress,
+    xversePublicKey,
+    isXverseConnected: !!xverseAddress,
+    setXverseWallet,
   };
 
   return (
@@ -35,7 +96,7 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
       provider={provider}
       connectors={connectors}
       explorer={starkscan}
-      // autoConnect
+      autoConnect={false} // Disable auto-connect to prevent mobile issues
     >
       <WalletContext.Provider value={value}>
         {children}

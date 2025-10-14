@@ -3,12 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  Bell, 
-  Heart, 
-  ShoppingCart, 
-  MessageCircle, 
-  FileText, 
+import {
+  Bell,
+  Heart,
+  ShoppingCart,
+  MessageCircle,
+  FileText,
   Tag,
   Check,
   CheckCheck,
@@ -21,6 +21,8 @@ import { useAccount } from '@starknet-react/core';
 import { toast } from '@/components/ui/sonner';
 import { NotificationService } from '@/services/notificationService';
 import { formatTimeAgo } from '@/utils/timeUtils';
+import ConnectWalletButton from '@/components/Wallet/ConnectWalletButton';
+import { useAnyWallet } from '@/hooks/useAnyWallet';
 
 interface Notification {
   id: string;
@@ -42,7 +44,8 @@ interface NotificationsPageProps {
 }
 
 const NotificationsPage: React.FC<NotificationsPageProps> = ({ onNavigate, onNotificationCountChange }) => {
-  const { address } = useAccount();
+  const { address: starknetAddress } = useAccount();
+  const { address } = useAnyWallet(); // Check BOTH Starknet and Xverse
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
@@ -179,12 +182,13 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onNavigate, onNot
     return (
       <div className="container mx-auto px-4 py-8">
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
+          <CardContent className="flex flex-col items-center justify-center py-12 space-y-4">
             <Bell className="w-16 h-16 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">Connect Your Wallet</h3>
-            <p className="text-muted-foreground text-center">
+            <p className="text-muted-foreground text-center mb-6">
               Please connect your wallet to view notifications
             </p>
+            <ConnectWalletButton />
           </CardContent>
         </Card>
       </div>

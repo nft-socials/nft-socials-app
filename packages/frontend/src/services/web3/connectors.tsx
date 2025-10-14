@@ -1,9 +1,10 @@
-import { argent, braavos, InjectedConnector } from "@starknet-react/core";
+import { argent, braavos, InjectedConnector, injected } from "@starknet-react/core";
 import { getTargetNetworks } from "../../utils/scaffold-stark";
 import { BurnerConnector } from "@scaffold-stark/stark-burner";
 import scaffoldConfig from "../../scaffold.config";
 import { LAST_CONNECTED_TIME_LOCALSTORAGE_KEY } from "../../utils/Constants";
 import { KeplrConnector } from "./keplr";
+import { xverse } from "./xverse";
 import { supportedChains } from "../../supportedChains";
 
 const targetNetworks = getTargetNetworks();
@@ -25,7 +26,14 @@ function withDisconnectWrapper(connector: InjectedConnector) {
 function getConnectors() {
   const { targetNetworks } = scaffoldConfig;
 
-  const connectors: InjectedConnector[] = [argent(), braavos()];
+  // argent() and braavos() work on both desktop and mobile
+  // Also add Xverse Wallet support (Bitcoin DeFi + Starknet wallet)
+  const connectors: InjectedConnector[] = [
+    argent(),
+    braavos(),
+    xverse(), // Custom Xverse connector
+  ];
+
   const isDevnet = targetNetworks.some(
     (network) => (network.network as string) === "devnet",
   );

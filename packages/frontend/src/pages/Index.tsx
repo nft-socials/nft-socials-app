@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { WalletProvider } from '@/context/WalletContext';
 import { AppProvider, useAppContext } from '@/context/AppContext';
 import '@/styles/content-protection.css';
@@ -11,7 +11,6 @@ import CreatePostModal from '@/components/Post/CreatePostModal';
 import CommunityFeed from '@/components/Feed/CommunityFeed';
 import BrowseSwaps from '@/components/Swap/BrowseSwaps';
 import ProfileView from '@/components/Profile/ProfileView';
-import HeroSection from '@/components/Landing/HeroSection';
 import MarketplaceGrid from '@/components/Marketplace/MarketplaceGrid';
 import ChatsPage from '@/components/Chat/ChatsPage';
 import WalletPage from '@/components/Wallet/WalletPage';
@@ -19,14 +18,73 @@ import UserPosts from '@/components/Profile/UserPosts';
 import NotificationDropdown from '@/components/Notifications/NotificationDropdown';
 import NotificationsPage from '@/components/Notifications/NotificationsPage';
 import { useNotificationCounts } from '@/hooks/useNotificationCounts';
+import SplashScreen from '@/components/Layout/SplashScreen';
+import DashboardInfo from './DashboardInfo';
 
 const IndexContent: React.FC = () => {
+  // ALL STATE HOOKS FIRST
   const [activeTab, setActiveTab] = useState<'feed' | 'Chats' | 'profile' | 'marketplace' | 'swaps' | 'user-nfts' | 'wallet' | 'notifications'>('feed');
-  const { counts, refreshCounts } = useNotificationCounts();
+  const [showSplash, setShowSplash] = useState(true);
+  const [showDashboardInfo, setShowDashboardInfo] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
+  // ALL CONTEXT/CUSTOM HOOKS NEXT
+  const { counts, refreshCounts } = useNotificationCounts();
+  const { isConnected } = useAccount();
+  const { state, refreshFeed } = useAppContext();
+
+  // CALLBACK FUNCTIONS
   const handleTabChange = (tab: string) => {
     setActiveTab(tab as typeof activeTab);
   };
+
+  const handleSplashComplete = useCallback(() => {
+    setShowSplash(false);
+  }, []);
+
+  const handleDashboardInfoClose = useCallback(() => {
+    setShowDashboardInfo(false);
+    setShowSplash(false);
+  }, []);
+
+  const handleCreatePost = useCallback(() => {
+    // Always open modal - it will show connect wallet UI if not connected
+    setShowCreateModal(true);
+  }, []);
+
+  const handlePostSuccess = useCallback(async () => {
+    // Redirect to home feed after successful post
+    setActiveTab('feed');
+
+    // Show confirming message
+    const loadingToast = toast.loading('🔄 Confirming post on blockchain...');
+
+    // Wait a moment then refresh to fetch new post
+    setTimeout(async () => {
+      // Dismiss the first loading toast
+      if (loadingToast) {
+        toast.dismiss(loadingToast);
+      }
+
+      const fetchingToast = toast.loading('📡 Fetching latest posts...');
+
+      // Refresh the feed to show the new post
+      await refreshFeed();
+
+      // Dismiss the fetching toast
+      if (fetchingToast) {
+        toast.dismiss(fetchingToast);
+      }
+
+      toast.success('🎉 Post confirmed and visible in feed!');
+    }, 2000);
+  }, [refreshFeed]);
+
+  // EFFECTS
+  // Show dashboard info on first mount
+  useEffect(() => {
+    setShowDashboardInfo(true);
+  }, []);
 
   // Global content protection
   useEffect(() => {
@@ -79,54 +137,26 @@ const IndexContent: React.FC = () => {
       document.removeEventListener('selectstart', handleGlobalSelectStart);
     };
   }, []);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const { isConnected } = useAccount();
-  const { state, refreshFeed } = useAppContext();
 
-  const handleCreatePost = () => {
-    if (!isConnected) return;
-    setShowCreateModal(true);
-  };
+  // RENDER LOGIC
+  // Show splash screen on every visit
+  if (showSplash) {
+    return <SplashScreen onComplete={handleSplashComplete} duration={3000} />;
+  }
 
-  const handlePostSuccess = async () => {
-    // Redirect to home feed after successful post
-    setActiveTab('feed');
-
-    // Show confirming message
-    const loadingToast = toast.loading('🔄 Confirming post on blockchain...');
-
-    // Wait a moment then refresh to fetch new post
-    setTimeout(async () => {
-      // Dismiss the first loading toast
-      if (loadingToast) {
-        toast.dismiss(loadingToast);
-      }
-
-      const fetchingToast = toast.loading('📡 Fetching latest posts...');
-
-      // Refresh the feed to show the new post
-      await refreshFeed();
-
-      // Dismiss the fetching toast
-      if (fetchingToast) {
-        toast.dismiss(fetchingToast);
-      }
-
-      toast.success('🎉 Post confirmed and visible in feed!');
-    }, 2000);
-  };
-
-
-  // Show landing page if not connected
-  if (!isConnected) {
+  // Show dashboard info on first visit only
+  if (showDashboardInfo) {
     return (
-      <div className="min-h-screen bg-background">
-        <HeroSection />
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="w-full max-w-4xl">
+          <DashboardInfo onGetStarted={handleDashboardInfoClose} />
+        </div>
         <Toaster />
       </div>
     );
   }
 
+  // Show main app with community feed
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
       <Header

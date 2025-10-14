@@ -1,32 +1,44 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Wallet, LogOut, Gem, Shield, Zap } from 'lucide-react';
 import { useStarknetWallet } from '@/hooks/useStarknetWallet';
+import { useXverseWallet } from '@/hooks/useXverseWallet';
+import MobileWalletModal from './MobileWalletModal';
 
 const WalletPage: React.FC = () => {
   const { isConnected, address, connectWallet, disconnectWallet, isConnecting, availableConnectors } = useStarknetWallet();
+  const {
+    isConnected: isXverseConnected,
+    address: xverseAddress,
+    disconnect: disconnectXverse
+  } = useXverseWallet();
+  const [showWalletModal, setShowWalletModal] = useState(false);
 
   const truncateAddress = (addr: string) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
 
-  if (isConnected && address) {
+  const anyWalletConnected = isConnected || isXverseConnected;
+
+  if (anyWalletConnected) {
     return (
       <div className="space-y-6 animate-fade-in">
-        <Card className="p-6 bg-card border-border">
-          <div className="text-center space-y-4">
-            <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center mx-auto animate-pulse-glow">
-              <Wallet className="w-8 h-8 text-primary-foreground" />
-            </div>
-            
-            <div>
-              <h2 className="text-xl font-bold text-foreground mb-2">Wallet Connected</h2>
-              <Badge variant="outline" className="text-lg px-4 py-2">
-                {truncateAddress(address)}
-              </Badge>
-            </div>
+        {/* Starknet Wallet Card */}
+        {isConnected && address && (
+          <Card className="p-6 bg-card border-border">
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center mx-auto animate-pulse-glow">
+                <Wallet className="w-8 h-8 text-primary-foreground" />
+              </div>
+
+              <div>
+                <h2 className="text-xl font-bold text-foreground mb-2">Starknet Wallet Connected</h2>
+                <Badge variant="outline" className="text-lg px-4 py-2">
+                  {truncateAddress(address)}
+                </Badge>
+              </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
               <div className="text-center p-4 bg-muted/50 rounded-lg">
@@ -48,16 +60,58 @@ const WalletPage: React.FC = () => {
               </div>
             </div>
 
-            <Button
-              onClick={disconnectWallet}
-              variant="outline"
-              className="w-full mt-6 hover:bg-destructive hover:text-destructive-foreground"
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Disconnect Wallet
-            </Button>
-          </div>
-        </Card>
+              <Button
+                onClick={disconnectWallet}
+                variant="outline"
+                className="w-full mt-6 hover:bg-destructive hover:text-destructive-foreground"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Disconnect Starknet Wallet
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* Xverse Wallet Card */}
+        {isXverseConnected && xverseAddress && (
+          <Card className="p-6 bg-card border-border border-orange-500/30">
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-orange-500/20 flex items-center justify-center mx-auto animate-pulse-glow">
+                <span className="text-4xl">🅧</span>
+              </div>
+
+              <div>
+                <h2 className="text-xl font-bold text-foreground mb-2">Xverse Wallet Connected</h2>
+                <Badge variant="outline" className="text-lg px-4 py-2 bg-orange-500/10 border-orange-500/50">
+                  {truncateAddress(xverseAddress)}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+                <div className="text-center p-4 bg-muted/50 rounded-lg">
+                  <Shield className="w-6 h-6 mx-auto mb-2 text-orange-500" />
+                  <div className="text-sm font-medium">Bitcoin</div>
+                  <div className="text-xs text-muted-foreground">Secure Wallet</div>
+                </div>
+
+                <div className="text-center p-4 bg-muted/50 rounded-lg">
+                  <Gem className="w-6 h-6 mx-auto mb-2 text-orange-500 animate-pulse" />
+                  <div className="text-sm font-medium">Ready</div>
+                  <div className="text-xs text-muted-foreground">Bitcoin NFTs</div>
+                </div>
+              </div>
+
+              <Button
+                onClick={disconnectXverse}
+                variant="outline"
+                className="w-full mt-6 hover:bg-destructive hover:text-destructive-foreground"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Disconnect Xverse Wallet
+              </Button>
+            </div>
+          </Card>
+        )}
 
         <Card className="p-6 bg-card border-border">
           <h3 className="text-lg font-semibold mb-4">Wallet Features</h3>
@@ -113,30 +167,15 @@ const WalletPage: React.FC = () => {
           </div>
 
           <div className="space-y-3 mt-6">
-            {availableConnectors.map((connector) => (
-              <Button
-                key={connector.id}
-                onClick={() => connectWallet(connector.id)}
-                disabled={isConnecting}
-                className="w-full bg-primary hover:bg-primary/90 animate-scale-in"
-                size="lg"
-              >
-                <Wallet className="w-4 h-4 mr-2" />
-                {isConnecting ? 'Connecting...' : `Connect ${connector.name || connector.id}`}
-              </Button>
-            ))}
-            
-            {availableConnectors.length === 0 && (
-              <Button
-                onClick={() => connectWallet()}
-                disabled={isConnecting}
-                className="w-full bg-primary hover:bg-primary/90 animate-scale-in"
-                size="lg"
-              >
-                <Wallet className="w-4 h-4 mr-2" />
-                {isConnecting ? 'Connecting...' : 'Connect Wallet'}
-              </Button>
-            )}
+            <Button
+              onClick={() => setShowWalletModal(true)}
+              disabled={isConnecting}
+              className="w-full bg-primary hover:bg-primary/90 animate-scale-in"
+              size="lg"
+            >
+              <Wallet className="w-4 h-4 mr-2" />
+              {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+            </Button>
           </div>
         </div>
       </Card>
@@ -184,10 +223,19 @@ const WalletPage: React.FC = () => {
 
       <Card className="p-4 bg-muted/50 border-border">
         <div className="text-center text-sm text-muted-foreground">
-          <p>Supported wallets: Argent, Braavos</p>
-          <p className="mt-1">Make sure you have a Starknet wallet installed</p>
+          <p>Supported wallets: Argent, Braavos (Starknet) | Xverse (Bitcoin)</p>
+          <p className="mt-1">Make sure you have a wallet installed</p>
         </div>
       </Card>
+
+      {/* Mobile-friendly wallet connection modal */}
+      <MobileWalletModal
+        isOpen={showWalletModal}
+        onClose={() => setShowWalletModal(false)}
+        onConnect={connectWallet}
+        availableConnectors={availableConnectors}
+        isConnecting={isConnecting}
+      />
     </div>
   );
 };

@@ -7,12 +7,13 @@ import {
   User,
   Menu,
   X,
-  Gem,
   ArrowUpDown,
   Bell,
-  MessageCircle
+  MessageCircle,
+  Sparkles
 } from 'lucide-react';
 import { useNavigationSwipeActions } from '@/hooks/useSwipeGestures';
+import onePostNftLogo from '@/Images/onepostnft_image.png';
 
 interface MobileNavigationProps {
   activeTab: string;
@@ -59,9 +60,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
 
   const handleTabClick = (item: { id: string; action?: () => void }) => {
     if (item.action && item.id === 'create') {
-      if (canCreatePost) {
-        item.action();
-      }
+      item.action();
     } else if (item.id === 'more') {
       setIsMenuOpen(true);
     } else {
@@ -84,9 +83,11 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
             {navigationItems.map((item) => {
               const Icon = item.icon;
               // Only one button can be active at a time
-              const isActive = item.id === 'feed' ? activeTab === 'feed'
-                             : item.id === 'more' ? isMoreMenuActive
-                             : false;
+              // Only one button can be active at a time
+              const isActive = item.id === 'feed' ? activeTab === 'feed' && !isMoreMenuActive
+                            : item.id === 'more' ? isMoreMenuActive
+                            : false;
+
               const isCreateButton = item.id === 'create';
 
               return (
@@ -95,18 +96,17 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                   variant="ghost"
                   size="sm"
                   onClick={() => handleTabClick(item)}
-                  disabled={isCreateButton && !canCreatePost}
                   className={`flex flex-col items-center gap-1 h-auto py-2 px-3 ${
                     isActive && !isCreateButton
                       ? 'text-white bg-primary'
                       : 'text-muted-foreground hover:text-foreground'
                   } ${
-                    isCreateButton && canCreatePost
+                    isCreateButton
                       ? 'text-primary-foreground hover:bg-primary/90'
                       : ''
                   }`}
                 >
-                  <Icon className={`w-5 h-5 ${isCreateButton && canCreatePost ? 'animate-pulse-glow' : ''}`} />
+                  <Icon className={`w-5 h-5 ${isCreateButton ? 'animate-pulse-glow' : ''}`} />
                   <span className="text-xs font-medium">{item.label}</span>
                   {isActive && !isCreateButton && (
                     <div className="w-1 h-1 rounded-full bg-success animate-pulse" />
@@ -131,17 +131,16 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                 key={item.id}
                 variant={isActive ? 'default' : 'ghost'}
                 onClick={() => handleTabClick(item)}
-                disabled={isCreateButton && !canCreatePost}
                 className={`flex items-center gap-2 ${
-                  isCreateButton && canCreatePost
+                  isCreateButton
                     ? 'bg-primary text-primary-foreground hover:bg-primary/90 animate-scale-in'
                     : ''
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isCreateButton && canCreatePost ? 'animate-pulse-glow' : ''}`} />
+                <Icon className={`w-4 h-4 ${isCreateButton ? 'animate-pulse-glow' : ''}`} />
                 {item.label}
                 {isActive && (
-                  <Gem className="w-3 h-3 animate-pulse" />
+                  <Sparkles className="w-3 h-3 animate-pulse" />
                 )}
               </Button>
             );
@@ -208,7 +207,13 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                   onClick={() => handleTabClick({ id: 'wallet' })}
                   className="w-full justify-start"
                 >
-                  <Gem className="w-4 h-4 mr-3" />
+                  <div className="w-4 h-4 mr-3 rounded overflow-hidden flex items-center justify-center">
+                    <img
+                      src={onePostNftLogo}
+                      alt="Wallet"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                   Wallet
                 </Button>
 

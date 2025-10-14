@@ -75,9 +75,8 @@ export const usePostSwipeActions = (
     }, [onSwapPropose]),
     
     onSwipeDown: useCallback(() => {
-      // Swipe down to bookmark
+      // Swipe down to bookmark (toast removed to prevent interference with scrolling)
       onBookmark?.();
-      toast.success('🔖 Bookmarked!', { duration: 1000 });
     }, [onBookmark]),
   });
 

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import ConnectWalletButton from '@/components/Wallet/ConnectWalletButton';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,6 +38,7 @@ import { ChatService, type ChatUser, type Message } from '@/services/chatService
 import { toast } from '@/components/ui/sonner';
 import EmojiPicker from 'emoji-picker-react';
 import { formatTimeAgo, useRealTimeTimestamp } from '@/utils/timeUtils';
+import { useAnyWallet } from '@/hooks/useAnyWallet';
 
 // Safe timestamp formatter for messages
 const safeFormatTimeAgo = (timestamp: string | undefined) => {
@@ -183,7 +185,8 @@ interface ChatsPageProps {
 }
 
 const ChatsPage: React.FC<ChatsPageProps> = ({ onChatCountChange }) => {
-  const { address, account } = useAccount();
+  const { address: starknetAddress, account } = useAccount();
+  const { address } = useAnyWallet(); // Check BOTH Starknet and Xverse
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [selectedChatAddress, setSelectedChatAddress] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -531,12 +534,13 @@ const ChatsPage: React.FC<ChatsPageProps> = ({ onChatCountChange }) => {
     return (
       <div className="h-[calc(100vh-200px)] flex bg-background rounded-lg border border-border overflow-hidden md:mt-10">
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
+          <div className="text-center space-y-4">
             <MessageCircle className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">Connect Your Wallet</h3>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground mb-6">
               Please connect your wallet to start chatting with other NFT creators.
             </p>
+            <ConnectWalletButton />
           </div>
         </div>
       </div>

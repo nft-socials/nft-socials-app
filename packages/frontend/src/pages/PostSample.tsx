@@ -1,8 +1,10 @@
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card'
-import { Diamond, Sparkles } from 'lucide-react';
+import { Diamond} from 'lucide-react';
 import React, { useState } from 'react'
 import BadgeImage from "../Images/newBadge.png"
+import onePostNftLogo from '@/Images/onepostnft_image.png';
+
 
 const PostSample = () => {
     const [animationStep, setAnimationStep] = useState(0);
@@ -32,8 +34,12 @@ const PostSample = () => {
                       >
                         <div className="space-y-4 w-80">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                              <Sparkles className="w-4 h-4 text-primary-foreground" />
+                            <div className="w-8 h-8 rounded-full bg-transparent flex items-center justify-center">
+                              <img
+                                          src={onePostNftLogo}
+                                          alt="OnePostNft Logo"
+                                          className="relative w-32 h-32 md:w-40 md:h-40 object-contain rounded-2xl shadow-2xl animate-bounce-slow"
+                                        />
                             </div>
                             <div className="text-left">
                               <div className="font-medium">Sample Nft Post</div>

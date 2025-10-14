@@ -1,16 +1,20 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Smile, Send, Camera, Image, Gem, Sparkles, SparklesIcon } from 'lucide-react';
+import { Smile, Send, Camera, Image, Sparkles, SparklesIcon, Wallet } from 'lucide-react';
+import onePostNftLogo from '@/Images/onepostnft_image.png';
 import { useAppContext } from '@/context/AppContext';
 import { useCamera } from '@/hooks/useCamera';
 import { usePostNFT } from '@/hooks/usePostNFT';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import EmojiPickerComponent from './EmojiPicker';
+import ConnectWalletButton from '@/components/Wallet/ConnectWalletButton';
+import { useAccount } from '@starknet-react/core';
+import { useAnyWallet } from '@/hooks/useAnyWallet';
 
 interface CreatePostModalProps {
   isOpen: boolean;
@@ -27,6 +31,8 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, onPo
 
   const { createPost, state } = useAppContext();
   const { mintPost, isLoading: isMinting } = usePostNFT();
+  const { address: starknetAddress } = useAccount();
+  const { address } = useAnyWallet(); // Check BOTH Starknet and Xverse
   const {
     videoRef,
     isActive: isCameraActive,
@@ -42,7 +48,17 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, onPo
   const MAX_CHARS = 280;
   const remainingChars = MAX_CHARS - content.length;
 
+  // Auto-start camera when switching to camera tab
+  useEffect(() => {
+    if (activeTab === 'camera' && !isCameraActive && isCameraSupported) {
+      handleStartCamera();
+    }
 
+    // Stop camera when switching away from camera tab
+    if (activeTab !== 'camera' && isCameraActive) {
+      stopCamera();
+    }
+  }, [activeTab]);
 
   const handleSubmit = async () => {
     console.log('handleSubmit called with:', { content, capturedImage, remainingChars });
@@ -138,7 +154,13 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, onPo
       <DialogContent className="sm:max-w-[600px] bg-card border-border animate-scale-in">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold flex items-center gap-2">
-            <Gem className="w-5 h-5 text-primary animate-pulse" />
+            <div className="w-5 h-5 rounded overflow-hidden flex items-center justify-center">
+              <img
+                src={onePostNftLogo}
+                alt="Create Post"
+                className="w-full h-full object-cover"
+              />
+            </div>
             Create Your Daily NFT Post
           </DialogTitle>
           <DialogDescription>
@@ -146,7 +168,17 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, onPo
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        {!address ? (
+          <div className="flex flex-col items-center justify-center py-12 space-y-4">
+            <Wallet className="w-16 h-16 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Connect Your Wallet</h3>
+            <p className="text-muted-foreground text-center mb-6">
+              Please connect your wallet to create and mint NFT posts
+            </p>
+            <ConnectWalletButton />
+          </div>
+        ) : (
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="text">Text</TabsTrigger>
             <TabsTrigger value="camera" disabled={!isCameraSupported}>Camera</TabsTrigger>
@@ -191,55 +223,48 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, onPo
 
           <TabsContent value="camera" className="space-y-4">
             <Card className="p-4 bg-background">
-              {!isCameraActive ? (
-                <div className="text-center space-y-4">
-                  <Camera className="w-12 h-12 mx-auto text-muted-foreground" />
-                  <div>
-                    <h3 className="font-medium">Camera Access</h3>
-                    <p className="text-sm text-muted-foreground">Take a photo to include with your post</p>
-                  </div>
-                  <Button onClick={handleStartCamera} className="bg-primary">
-                    <Camera className="w-4 h-4 mr-2" />
-                    Start Camera
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="relative">
-                    <video
-                      ref={videoRef}
-                      autoPlay
-                      playsInline
-                      muted
-                      className="w-full h-48 sm:h-64 md:h-72 lg:h-80 object-cover rounded-lg bg-black"
-                      onLoadedMetadata={() => console.log('Video metadata loaded in component')}
-                      onPlay={() => console.log('Video started playing in component')}
-                      onError={(e) => console.error('Video error in component:', e)}
-                      style={{ backgroundColor: '#000' }}
-                    />
-                    {!isCameraActive && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
-                        <div className="text-white text-center">
-                          <Camera className="w-8 h-8 mx-auto mb-2" />
-                          <p>Initializing camera...</p>
+              <div className="space-y-4">
+                <div className="relative">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-48 sm:h-64 md:h-72 lg:h-80 object-cover rounded-lg bg-black"
+                    style={{ backgroundColor: '#000' }}
+                  />
+                  {!isCameraActive && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
+                      <div className="text-white text-center space-y-3">
+                        <Camera className="w-12 h-12 mx-auto animate-pulse" />
+                        <div>
+                          <p className="font-medium">Starting camera...</p>
+                          <p className="text-sm text-gray-300 mt-1">Please allow camera access</p>
                         </div>
                       </div>
-                    )}
-                  </div>
-
-
-
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <Button onClick={handleCapturePhoto} className="flex-1 bg-success">
-                      <Camera className="w-4 h-4 mr-2" />
-                      Capture Photo
-                    </Button>
-                    <Button variant="outline" onClick={stopCamera} className="sm:w-auto">
-                      Cancel
-                    </Button>
-                  </div>
+                    </div>
+                  )}
                 </div>
-              )}
+
+                <div className="text-center text-sm text-muted-foreground">
+                  <p>📸 Position yourself and click capture when ready</p>
+                  <p className="text-xs mt-1">No filters applied - just you!</p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button
+                    onClick={handleCapturePhoto}
+                    disabled={!isCameraActive}
+                    className="flex-1 bg-primary hover:bg-primary/90"
+                  >
+                    <Camera className="w-4 h-4 mr-2" />
+                    {isCameraActive ? 'Capture Photo' : 'Starting...'}
+                  </Button>
+                  <Button variant="outline" onClick={() => setActiveTab('text')} className="sm:w-auto">
+                    Cancel
+                  </Button>
+                </div>
+              </div>
             </Card>
           </TabsContent>
 
@@ -331,6 +356,7 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, onPo
             </Button>
           </div>
         </Tabs>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -2,24 +2,28 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Gem, ExternalLink, RefreshCw } from 'lucide-react';
+import { ExternalLink, RefreshCw, User } from 'lucide-react';
 import { useAppContext } from '@/context/AppContext';
 import { useAccount } from '@starknet-react/core';
 import { cancelSell, getAllPosts, getSoldNFTs, getUserSoldNFTs } from '@/services/contract';
+import onePostNftLogo from '@/Images/onepostnft_image.png';
 import PostCard from '@/components/Feed/PostCard';
 import SellModal from '@/components/Modals/SellModal';
 import { toast } from 'react-hot-toast';
 import type { Post } from '@/context/AppContext';
 import { LikesService } from '@/services/chatService';
+import ConnectWalletButton from '@/components/Wallet/ConnectWalletButton';
+import { useAnyWallet } from '@/hooks/useAnyWallet';
 
 interface ProfileViewProps {
   isConnected: boolean;
   onNavigate?: (tab: string) => void;
 }
 
-const ProfileView: React.FC<ProfileViewProps> = ({ isConnected, onNavigate }) => {
+const ProfileView: React.FC<ProfileViewProps> = ({ isConnected: _isConnected, onNavigate }) => {
   const { state, refreshUserData } = useAppContext();
-  const { address, account } = useAccount();
+  const { address: starknetAddress, account } = useAccount();
+  const { isConnected, address } = useAnyWallet(); // Check BOTH Starknet and Xverse
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
   const [sellModalOpen, setSellModalOpen] = useState(false);
@@ -188,8 +192,9 @@ const ProfileView: React.FC<ProfileViewProps> = ({ isConnected, onNavigate }) =>
     return (
       <Card className="p-4 bg-card/50 border-border/50">
         <h2 className="text-lg font-semibold mb-4">Your Profile</h2>
-        <div className="text-center py-8 text-muted-foreground">
-          <p>Connect your wallet to view your profile</p>
+        <div className="text-center py-8 space-y-4">
+          <p className="text-muted-foreground">Connect your wallet to view your profile</p>
+          <ConnectWalletButton />
         </div>
       </Card>
     );
@@ -202,7 +207,13 @@ const ProfileView: React.FC<ProfileViewProps> = ({ isConnected, onNavigate }) =>
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="text-xl flex items-center gap-2">
-            <Gem className="w-5 h-5 text-primary animate-pulse" />
+            <div className="w-5 h-5 rounded overflow-hidden flex items-center justify-center">
+              <img
+                src={onePostNftLogo}
+                alt="Profile"
+                className="w-full h-full object-cover"
+              />
+            </div>
             Profile
           </CardTitle>
           <div className="flex items-center gap-2">
