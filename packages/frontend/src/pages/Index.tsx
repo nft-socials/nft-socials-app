@@ -10,7 +10,7 @@ import MobileNavigation from '@/components/Layout/MobileNavigation';
 import DesktopNavigation from '@/components/Layout/DesktopNavigation';
 import CreatePostModal from '@/components/Post/CreatePostModal';
 import CommunityFeed from '@/components/Feed/CommunityFeed';
-import BrowseSwaps from '@/components/Swap/BrowseSwaps';
+
 import ProfileView from '@/components/Profile/ProfileView';
 import HeroSection from '@/components/Landing/HeroSection';
 import MarketplaceGrid from '@/components/Marketplace/MarketplaceGrid';
@@ -21,14 +21,17 @@ import NotificationDropdown from '@/components/Notifications/NotificationDropdow
 import NotificationsPage from '@/components/Notifications/NotificationsPage';
 import WalletPrompt from '@/components/Wallet/WalletPrompt';
 import { useNotificationCounts } from '@/hooks/useNotificationCounts';
+import { trackInteraction, hasUserInteracted } from '@/utils/userInteraction';
 
 const IndexContent: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'feed' | 'Chats' | 'profile' | 'marketplace' | 'swaps' | 'user-nfts' | 'wallet' | 'notifications'>('feed');
+  const [activeTab, setActiveTab] = useState<'feed' | 'Chats' | 'profile' | 'marketplace' | 'user-nfts' | 'wallet' | 'notifications'>('feed');
   const { counts, refreshCounts } = useNotificationCounts();
   const [showHeroSection, setShowHeroSection] = useState(false);
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab as typeof activeTab);
+    // Track navigation as user interaction
+    trackInteraction('navigation');
   };
 
   // Global content protection
@@ -83,26 +86,32 @@ const IndexContent: React.FC = () => {
     };
   }, []);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const { isConnected } = useAccount();
-  const { state, refreshFeed } = useAppContext();
+  const { isConnected, address } = useAccount();
+  const { state, refreshFeed, checkForNewPosts } = useAppContext();
+
+  // Track wallet connection as user interaction
+  useEffect(() => {
+    if (isConnected && address) {
+      trackInteraction('wallet_connect');
+    }
+  }, [isConnected, address]);
 
   // Check if user should see hero section
   useEffect(() => {
-    const hasSeenHero = localStorage.getItem('hasSeenHeroSection');
-
-    // Show hero section if user hasn't seen it and is not connected
-    if (!hasSeenHero && !isConnected) {
+    // Show hero section if user hasn't interacted with the dapp and is not connected
+    if (!hasUserInteracted() && !isConnected) {
       setShowHeroSection(true);
     }
   }, [isConnected]);
 
   const handleHeroSectionComplete = () => {
-    localStorage.setItem('hasSeenHeroSection', 'true');
+    trackInteraction('navigation');
     setShowHeroSection(false);
   };
 
   const handleCreatePost = () => {
     if (!isConnected) return;
+    trackInteraction('post_create');
     setShowCreateModal(true);
   };
 
@@ -176,11 +185,12 @@ const IndexContent: React.FC = () => {
                 posts={state.posts}
                 onRefresh={refreshFeed}
                 onNavigate={handleTabChange}
+                hasNewPosts={state.hasNewPosts}
+                onCheckNewPosts={checkForNewPosts}
               />
             )}
             {activeTab === 'Chats' && <ChatsPage onChatCountChange={refreshCounts} />}
             {activeTab === 'marketplace' && <MarketplaceGrid onNavigate={handleTabChange} />}
-            {activeTab === 'swaps' && <BrowseSwaps />}
             {activeTab === 'profile' && <ProfileView isConnected={isConnected} onNavigate={handleTabChange} />}
             {activeTab === 'user-nfts' && <UserPosts />}
             {activeTab === 'wallet' && <WalletPage />}

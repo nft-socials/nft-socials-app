@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Wallet, Sparkles, ShoppingCart, MessageCircle, User, Heart, Tag } from 'lucide-react';
@@ -46,10 +46,10 @@ const WalletPrompt: React.FC = () => {
         description: 'Connect your wallet to like posts and interact with the community',
         icon: <Heart className="w-6 h-6 text-red-500" />
       },
-      propose_swap: {
-        title: 'Propose Swap',
-        description: 'Connect your wallet to propose NFT swaps',
-        icon: <Sparkles className="w-6 h-6 text-purple-500" />
+      wallet_connect: {
+        title: 'Connect Wallet',
+        description: 'Connect your wallet to access all features of the platform',
+        icon: <Wallet className="w-6 h-6 text-blue-500" />
       }
     };
 
@@ -66,10 +66,18 @@ const WalletPrompt: React.FC = () => {
     setShowWalletSelection(true);
   };
 
-  const handleWalletConnected = () => {
+  const handleWalletConnected = useCallback(() => {
     setShowWalletSelection(false);
+    // Call the success callback if provided
+    if (walletPrompt.onSuccess) {
+      walletPrompt.onSuccess();
+    }
     hideWalletPrompt();
-  };
+  }, [walletPrompt, hideWalletPrompt]);
+
+  const handleCloseWalletSelection = useCallback(() => {
+    setShowWalletSelection(false);
+  }, []);
 
   return (
     <>
@@ -129,7 +137,7 @@ const WalletPrompt: React.FC = () => {
 
       <WalletSelectionModal
         isOpen={showWalletSelection}
-        onClose={() => setShowWalletSelection(false)}
+        onClose={handleCloseWalletSelection}
         onSuccess={handleWalletConnected}
       />
     </>

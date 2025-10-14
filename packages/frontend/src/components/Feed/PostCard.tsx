@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Sparkles, ArrowUpDown, Heart, Tag, Image as ImageIcon, ShoppingCart, MessageCircle } from 'lucide-react';
+import { Clock, Sparkles, Heart, Tag, Image as ImageIcon, ShoppingCart, MessageCircle } from 'lucide-react';
 import { Post } from '@/context/AppContext';
 import { usePostSwipeActions } from '@/hooks/useSwipeGestures';
 import { getFromIPFS, PostMetadata } from '@/services/ipfs';
@@ -13,8 +13,6 @@ import { formatTimeAgo } from '@/utils/timeUtils';
 
 interface PostCardProps {
   post: Post;
-  onSwapClick?: (post: Post) => void;
-  showSwapButton?: boolean;
   onLike?: (post: Post) => void;
   onShare?: (post: Post) => void;
   onSell?: (post: Post) => void;
@@ -31,8 +29,6 @@ interface PostCardProps {
 
 const PostCard: React.FC<PostCardProps> = ({
   post,
-  onSwapClick,
-  showSwapButton = false,
   onLike,
   onShare,
   onSell,
@@ -142,10 +138,9 @@ const PostCard: React.FC<PostCardProps> = ({
     post.tokenId,
     () => onLike?.(post),
     () => isPostOwner ? onSell?.(post) : onShare?.(post),
-    () => onSwapClick?.(post),
   );
 
-  const getSwapStatus = () => {
+  const getPostStatus = () => {
     // If post is for sale, show for sale status
     if (isForSale) {
       return { status: 'for-sale', color: 'bg-green-500/20 text-green-400', label: 'For Sale' };
@@ -156,19 +151,16 @@ const PostCard: React.FC<PostCardProps> = ({
     //   return { status: 'sold', color: 'bg-gray-500/20 text-gray-400', label: 'Sold' };
     // }
 
-    if (!post.isSwappable) {
-      const hoursSincePost = (Date.now() - post.timestamp) / (1000 * 60 * 60);
-      if (hoursSincePost < 24) {
-        return { status: 'today', color: 'bg-blue-500/20 text-blue-400', label: "Today's Post" };
-      }
-      return { status: 'cooldown', color: 'bg-orange-500/20 text-orange-400', label: 'Cooldown' };
+    const hoursSincePost = (Date.now() - post.timestamp) / (1000 * 60 * 60);
+    if (hoursSincePost < 24) {
+      return { status: 'today', color: 'bg-blue-500/20 text-blue-400', label: "Today's Post" };
     }
 
     // Default status for posts that are not for sale
-    return { status: 'available', color: 'bg-purple-500/20 text-purple-400', label: 'Not for sale' };
+    return { status: 'available', color: 'bg-purple-500/20 text-purple-400', label: 'Available' };
   };
 
-  const swapStatus = getSwapStatus();
+  const postStatus = getPostStatus();
 
   return (
     <Card
@@ -199,8 +191,8 @@ const PostCard: React.FC<PostCardProps> = ({
             </div>
           </div>
           
-          <Badge className={`${swapStatus.color} border-0 text-nowrap`}>
-            {swapStatus.label}
+          <Badge className={`${postStatus.color} border-0 text-nowrap`}>
+            {postStatus.label}
           </Badge>
         </div>
 
@@ -336,7 +328,7 @@ const PostCard: React.FC<PostCardProps> = ({
 
         {/* Mobile swipe hint */}
         <div className="md:hidden mt-3 text-xs text-muted-foreground text-center opacity-50 border-t border-border pt-2">
-          ← Like • mint → • ↑ sell/buy • ↓ Save
+          ← Like • Share → • ↓ Save
         </div>
       </div>
 

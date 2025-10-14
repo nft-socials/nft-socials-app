@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Wallet, Smartphone, Download, ExternalLink, AlertCircle } from 'lucide-react';
+import { Wallet, Smartphone, Download, AlertCircle } from 'lucide-react';
 import { useConnect, useAccount } from '@starknet-react/core';
 import { toast } from 'sonner';
 
@@ -19,7 +19,6 @@ interface WalletOption {
   description: string;
   downloadUrl?: string;
   isInstalled?: boolean;
-  isMobile?: boolean;
 }
 
 const WalletSelectionModal: React.FC<WalletSelectionModalProps> = ({
@@ -28,45 +27,49 @@ const WalletSelectionModal: React.FC<WalletSelectionModalProps> = ({
   onSuccess
 }) => {
   const { connect, connectors } = useConnect();
-  const { address } = useAccount();
-  const [isConnecting, setIsConnecting] = useState<string | null>(null);
+  const { status } = useAccount();
+  const [connectingWalletId, setConnectingWalletId] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [toastShown, setToastShown] = useState(false);
 
   useEffect(() => {
-    // Detect mobile device
     setIsMobile(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
   }, []);
 
   useEffect(() => {
-    if (address) {
-      onSuccess?.();
+    if (status === 'connected' && connectingWalletId && !toastShown) {
+      setToastShown(true);
+      toast.success('Wallet connected successfully!');
+      if (onSuccess) {
+        onSuccess();
+      }
       onClose();
     }
-  }, [address]);
+  }, [status, connectingWalletId, onSuccess, onClose, toastShown]);
 
   const walletOptions: WalletOption[] = [
     {
       id: 'argentX',
       name: 'Argent X',
-      icon: '🦊', // You can replace with actual logo
+      icon: '🦊',
       description: 'The most popular Starknet wallet',
-      downloadUrl: 'https://chrome.google.com/webstore/detail/argent-x/dlcobpjiigpikoobohmabehhmhfoodbb',
+      downloadUrl: 'https://www.argent.xyz/argent-x/',
       isInstalled: typeof window !== 'undefined' && !!(window as any).starknet_argentX,
     },
     {
       id: 'braavos',
       name: 'Braavos',
-      icon: '🛡️', // You can replace with actual logo
+      icon: '🛡️',
       description: 'Advanced Starknet wallet with enhanced security',
-      downloadUrl: 'https://chrome.google.com/webstore/detail/braavos-wallet/jnlgamecbpmbajjfhmmmlhejkemejdma',
+      downloadUrl: 'https://braavos.app/',
       isInstalled: typeof window !== 'undefined' && !!(window as any).starknet_braavos,
     },
     {
       id: 'xverse',
       name: 'Xverse',
-      icon: '🔶', // You can replace with actual logo
+      icon: '🔶',
       description: 'Bitcoin-native wallet with Starknet support',
-      downloadUrl: 'https://chrome.google.com/webstore/detail/xverse-wallet/idnnbdplmphpflfnlkomgpfbpcgelopg',
+      downloadUrl: 'https://www.xverse.app/',
       isInstalled: typeof window !== 'undefined' && (
         !!(window as any).XverseProviders ||
         !!(window as any).starknet_xverse ||
@@ -80,7 +83,8 @@ const WalletSelectionModal: React.FC<WalletSelectionModalProps> = ({
 
   const handleWalletConnect = async (walletId: string) => {
     try {
-      setIsConnecting(walletId);
+      setToastShown(false);
+      setConnectingWalletId(walletId);
 
       const connector = connectors.find(c =>
         c.id.toLowerCase().includes(walletId.toLowerCase()) ||
@@ -88,33 +92,31 @@ const WalletSelectionModal: React.FC<WalletSelectionModalProps> = ({
       );
 
       if (!connector) {
-        toast.error('Wallet connector not found');
+        toast.error('Wallet connector not found. Please make sure the wallet is installed.');
+        setConnectingWalletId(null);
         return;
       }
 
       await connect({ connector });
-      toast.success(`Connected to ${walletId}`);
     } catch (error: any) {
       console.error('Wallet connection error:', error);
-      toast.error(`Failed to connect to ${walletId}: ${error.message || 'Unknown error'}`);
-    } finally {
-      setIsConnecting(null);
+
+      if (error.message?.includes('User rejected') || error.message?.includes('rejected')) {
+        toast.error('Connection cancelled by user');
+      } else {
+        toast.error(`Failed to connect: ${error.message || 'Please try again'}`);
+      }
+      setConnectingWalletId(null);
     }
   };
 
   const handleInstallWallet = (downloadUrl: string) => {
-    if (isMobile) {
-      // For mobile, try to open the app store or direct download
-      window.open(downloadUrl, '_blank');
-    } else {
-      // For desktop, open browser extension store
-      window.open(downloadUrl, '_blank');
-    }
+    window.open(downloadUrl, '_blank', 'noopener,noreferrer');
   };
 
   const renderWalletCard = (wallet: WalletOption) => {
     const isInstalled = wallet.isInstalled;
-    const isLoading = isConnecting === wallet.id;
+    const isLoading = connectingWalletId === wallet.id;
 
     return (
       <Card key={wallet.id} className="hover:border-primary/50 transition-colors">
@@ -129,7 +131,7 @@ const WalletSelectionModal: React.FC<WalletSelectionModalProps> = ({
             </div>
             
             <div className="flex flex-col space-y-2">
-              {isInstalled ? (
+              {isInstalled || isMobile ? (
                 <Button
                   onClick={() => handleWalletConnect(wallet.id)}
                   disabled={isLoading}
@@ -158,7 +160,7 @@ const WalletSelectionModal: React.FC<WalletSelectionModalProps> = ({
                 </Button>
               )}
               
-              {!isInstalled && (
+              {!isInstalled && !isMobile && (
                 <div className="flex items-center text-xs text-muted-foreground">
                   <AlertCircle className="w-3 h-3 mr-1" />
                   Not installed
@@ -196,7 +198,7 @@ const WalletSelectionModal: React.FC<WalletSelectionModalProps> = ({
                 <Smartphone className="w-4 h-4 text-blue-600 mt-0.5" />
                 <div className="text-xs text-blue-700 dark:text-blue-300">
                   <p className="font-medium">Mobile Users:</p>
-                  <p>Make sure you have the wallet app installed on your device. After installation, return to this page to connect.</p>
+                  <p>Select a wallet to connect. This will redirect you to the wallet app.</p>
                 </div>
               </div>
             </div>

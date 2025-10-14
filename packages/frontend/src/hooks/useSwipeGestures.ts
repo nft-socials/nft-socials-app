@@ -52,7 +52,6 @@ export const usePostSwipeActions = (
   postId: string,
   onLike?: () => void,
   onShare?: () => void,
-  onSwapPropose?: () => void,
   onBookmark?: () => void
 ) => {
   const swipeHandlers = useSwipeGestures({
@@ -61,19 +60,13 @@ export const usePostSwipeActions = (
       onLike?.();
       toast.success('❤️ Liked!', { duration: 1000 });
     }, [onLike]),
-    
+
     onSwipeRight: useCallback(() => {
       // Swipe right to share
       onShare?.();
       toast.success('📤 Shared!', { duration: 1000 });
     }, [onShare]),
-    
-    onSwipeUp: useCallback(() => {
-      // Swipe up to propose swap
-      onSwapPropose?.();
-      toast.success('🔄 Swap proposed!', { duration: 1000 });
-    }, [onSwapPropose]),
-    
+
     onSwipeDown: useCallback(() => {
       // Swipe down to bookmark
       onBookmark?.();

@@ -3,11 +3,12 @@ import { useAccount } from '@starknet-react/core';
 
 interface GuestBrowsingContextType {
   isGuestMode: boolean;
-  showWalletPrompt: (action: string) => void;
+  showWalletPrompt: (action: string, onSuccess?: () => void) => void;
   hideWalletPrompt: () => void;
   walletPrompt: {
     isVisible: boolean;
     action: string;
+    onSuccess?: () => void;
   };
   requiresWallet: (action: string) => boolean;
 }
@@ -35,9 +36,7 @@ const WALLET_REQUIRED_ACTIONS = [
   'start_chat',
   'access_profile',
   'like_post', // Optional - you can remove this if you want to allow anonymous likes
-  'propose_swap',
-  'accept_swap',
-  'reject_swap'
+  'wallet_connect'
 ];
 
 // Actions that can be done in guest mode
@@ -55,7 +54,8 @@ export const GuestBrowsingProvider: React.FC<GuestBrowsingProviderProps> = ({ ch
   const { address } = useAccount();
   const [walletPrompt, setWalletPrompt] = useState({
     isVisible: false,
-    action: ''
+    action: '',
+    onSuccess: undefined as (() => void) | undefined
   });
 
   const isGuestMode = !address;
@@ -64,11 +64,12 @@ export const GuestBrowsingProvider: React.FC<GuestBrowsingProviderProps> = ({ ch
     return WALLET_REQUIRED_ACTIONS.includes(action);
   };
 
-  const showWalletPrompt = (action: string) => {
+  const showWalletPrompt = (action: string, onSuccess?: () => void) => {
     if (requiresWallet(action) && isGuestMode) {
       setWalletPrompt({
         isVisible: true,
-        action
+        action,
+        onSuccess
       });
     }
   };
@@ -76,7 +77,8 @@ export const GuestBrowsingProvider: React.FC<GuestBrowsingProviderProps> = ({ ch
   const hideWalletPrompt = () => {
     setWalletPrompt({
       isVisible: false,
-      action: ''
+      action: '',
+      onSuccess: undefined
     });
   };
 

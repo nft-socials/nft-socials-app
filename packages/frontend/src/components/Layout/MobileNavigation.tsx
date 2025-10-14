@@ -10,9 +10,12 @@ import {
   Gem,
   ArrowUpDown,
   Bell,
-  MessageCircle
+  MessageCircle,
+  Wallet
 } from 'lucide-react';
 import { useNavigationSwipeActions } from '@/hooks/useSwipeGestures';
+import { useGuestBrowsing } from '@/context/GuestBrowsingContext';
+import { useAccount } from '@starknet-react/core';
 
 interface MobileNavigationProps {
   activeTab: string;
@@ -32,6 +35,8 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
   chatCount,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { showWalletPrompt } = useGuestBrowsing();
+  const { isConnected } = useAccount();
 
   const navigationItems = [
     { id: 'feed', label: 'Home', icon: Home },
@@ -60,7 +65,15 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
   const handleTabClick = (item: { id: string; action?: () => void }) => {
     if (item.action && item.id === 'create') {
       if (canCreatePost) {
+        // User is connected and can create post
         item.action();
+      } else {
+        // User is not connected, show wallet prompt with callback to open create modal
+        showWalletPrompt('create_post', () => {
+          if (item.action) {
+            item.action();
+          }
+        });
       }
     } else if (item.id === 'more') {
       setIsMenuOpen(true);
@@ -95,18 +108,17 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                   variant="ghost"
                   size="sm"
                   onClick={() => handleTabClick(item)}
-                  disabled={isCreateButton && !canCreatePost}
                   className={`flex flex-col items-center gap-1 h-auto py-2 px-3 ${
                     isActive && !isCreateButton
                       ? 'text-white bg-primary'
                       : 'text-muted-foreground hover:text-foreground'
                   } ${
-                    isCreateButton && canCreatePost
-                      ? 'text-primary-foreground hover:bg-primary/90'
+                    isCreateButton
+                      ? 'text-primary hover:bg-primary/90'
                       : ''
                   }`}
                 >
-                  <Icon className={`w-5 h-5 ${isCreateButton && canCreatePost ? 'animate-pulse-glow' : ''}`} />
+                  <Icon className={`w-5 h-5 ${isCreateButton ? 'animate-pulse-glow' : ''}`} />
                   <span className="text-xs font-medium">{item.label}</span>                 
                 </Button>
               );
@@ -128,14 +140,13 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                 key={item.id}
                 variant={isActive ? 'default' : 'ghost'}
                 onClick={() => handleTabClick(item)}
-                disabled={isCreateButton && !canCreatePost}
                 className={`flex items-center gap-2 ${
-                  isCreateButton && canCreatePost
+                  isCreateButton
                     ? 'bg-primary text-primary-foreground hover:bg-primary/90 animate-scale-in'
                     : ''
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isCreateButton && canCreatePost ? 'animate-pulse-glow' : ''}`} />
+                <Icon className={`w-4 h-4 ${isCreateButton ? 'animate-pulse-glow' : ''}`} />
                 {item.label}
                 {isActive && (
                   <Gem className="w-3 h-3 animate-pulse" />
@@ -164,6 +175,18 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
               </div>
               
               <div className="space-y-2">
+                {/* Connect Wallet Button for non-connected users */}
+                {!isConnected && (
+                  <Button
+                    variant="default"
+                    onClick={() => showWalletPrompt('wallet_connect')}
+                    className="w-full justify-start bg-primary text-primary-foreground hover:bg-primary/90 animate-pulse-glow"
+                  >
+                    <Wallet className="w-4 h-4 mr-3" />
+                    Connect Wallet
+                  </Button>
+                )}
+
                 {/* Chats */}
                 <Button
                   variant="ghost"

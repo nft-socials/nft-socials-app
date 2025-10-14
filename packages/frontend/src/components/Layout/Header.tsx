@@ -60,6 +60,25 @@ const Header: React.FC<HeaderProps> = ({ onCreatePost, canCreatePost }) => {
             </Button>
           )}
 
+          {/* Mobile wallet connect button */}
+          <div className="block md:hidden">
+            {isConnected ? (
+              <Badge variant="outline" className="text-xs px-2 py-1">
+                {truncateAddress(address!)}
+              </Badge>
+            ) : (
+              <Button
+                onClick={handleConnectWallet}
+                size="sm"
+                className="bg-primary hover:bg-primary/90 animate-scale-in text-xs px-3 py-1"
+              >
+                <Wallet className="w-3 h-3 mr-1" />
+                Connect
+              </Button>
+            )}
+          </div>
+
+          {/* Desktop wallet section */}
           <div className="hidden md:block">
             {isConnected ? (
               <div className="flex items-center gap-3 animate-slide-up">
