@@ -1,6 +1,6 @@
 import { useAccount } from '@starknet-react/core';
 import { useCallback, useState } from 'react';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import {
   createPost,
   proposeSell,
@@ -38,7 +38,6 @@ export const usePostNFT = () => {
 
   // Mint a new post as NFT
   const mintPost = useCallback(async (content: string, imageDataUrl?: string, onSuccess?: () => void): Promise<string | null> => {
-    console.log('mintPost called with:', { content, hasImage: !!imageDataUrl, account: !!account, address });
 
     if (!account || !address) {
       toast.error('Please connect your wallet first');
@@ -46,7 +45,6 @@ export const usePostNFT = () => {
     }
 
     try {
-      console.log('Starting mintPost process...');
       setLoading(true);
       setError(undefined);
 
@@ -65,17 +63,12 @@ export const usePostNFT = () => {
         version: '1.0',
         image: imageDataUrl // Include image data if provided
       };
-      console.log('Prepared metadata:', metadata);
 
       // Store on IPFS
-      console.log('About to store on IPFS...');
       const ipfsHash = await storeOnIPFS(metadata);
-      console.log("Storing to IPFS successful:", ipfsHash);
 
       // Mint NFT with IPFS hash (price = 0 for regular posts)
-      console.log('About to call createPost...');
       const txHash = await createPost(account, ipfsHash, 0);
-      console.log('createPost successful:', txHash);
 
       toast.success('Post minted successfully! 🎉 Redirecting to home...');
 

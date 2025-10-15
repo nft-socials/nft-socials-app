@@ -10,9 +10,12 @@ import {
   ArrowUpDown,
   Bell,
   MessageCircle,
-  Sparkles
+  Sparkles,
+  Wallet
 } from 'lucide-react';
 import { useNavigationSwipeActions } from '@/hooks/useSwipeGestures';
+import { useGuestBrowsing } from '@/context/GuestBrowsingContext';
+import { useAnyWallet } from '@/hooks/useAnyWallet';
 import onePostNftLogo from '@/Images/onepostnft_image.png';
 
 interface MobileNavigationProps {
@@ -33,6 +36,8 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
   chatCount,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { showWalletPrompt } = useGuestBrowsing();
+  const { isConnected } = useAnyWallet();
 
   const navigationItems = [
     { id: 'feed', label: 'Home', icon: Home },
@@ -166,6 +171,18 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
               </div>
               
               <div className="space-y-2">
+                {/* Connect Wallet Button for non-connected users */}
+                {!isConnected && (
+                  <Button
+                    variant="default"
+                    onClick={() => showWalletPrompt('wallet_connect')}
+                    className="w-full justify-start bg-primary text-primary-foreground hover:bg-primary/90 animate-pulse-glow"
+                  >
+                    <Wallet className="w-4 h-4 mr-3" />
+                    Connect Wallet
+                  </Button>
+                )}
+
                 {/* Chats */}
                 <Button
                   variant="ghost"

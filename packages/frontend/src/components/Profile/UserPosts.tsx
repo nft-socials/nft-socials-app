@@ -5,8 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { RefreshCw, Loader2, Calendar, TrendingUp, Wallet } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import PostCard from '@/components/Feed/PostCard';
-import { useStarknetWallet } from '@/hooks/useStarknetWallet';
-import { usePostNFT } from '@/hooks/usePostNFT';
+import { useAnyWallet } from '@/hooks/useAnyWallet';
 import { getAllPosts } from '@/services/contract';
 import type { Post } from '@/context/AppContext';
 import { LikesService } from '@/services/chatService';
@@ -14,8 +13,7 @@ import onePostNftLogo from '@/Images/onepostnft_image.png';
 import ConnectWalletButton from '@/components/Wallet/ConnectWalletButton';
 
 const UserPosts: React.FC = () => {
-  const { address, isConnected } = useStarknetWallet();
-  const { fetchUserPosts } = usePostNFT();
+  const { address, isConnected } = useAnyWallet();
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
@@ -127,7 +125,7 @@ const UserPosts: React.FC = () => {
     }
   };
 
-  const handleSellProposal = (post: Post) => {
+  const handleSell = (_post: Post) => {
     toast.success('Sell functionality coming soon!');
   };
 
@@ -238,15 +236,17 @@ const UserPosts: React.FC = () => {
         ) : (
           <div className="space-y-4">
             {posts.map((post) => (
-              <PostCard 
-                key={post.tokenId} 
+              <PostCard
+                key={post.tokenId}
                 post={post}
                 onLike={handleLike}
                 onShare={handleShare}
-                onSwapClick={handleSellProposal}
-                showSwapButton={true}
+                onSell={handleSell}
+                showSellButton={true}
                 isLiked={likedPosts.has(post.tokenId)}
                 likeCount={likeCounts[post.tokenId] || 0}
+                isOwner={post.currentOwner?.toLowerCase() === address?.toLowerCase()}
+                isForSale={post.isForSale || false}
               />
             ))}
           </div>

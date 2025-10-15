@@ -61,18 +61,14 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, onPo
   }, [activeTab]);
 
   const handleSubmit = async () => {
-    console.log('handleSubmit called with:', { content, capturedImage, remainingChars });
 
     if ((content.trim() || capturedImage) && remainingChars >= 0) {
       try {
-        console.log('Starting post creation...');
         // Use the actual content, allow empty content for image-only posts
         const finalContent = content.trim();
 
-        console.log('About to call mintPost with:', { finalContent, hasImage: !!capturedImage });
         const result = await mintPost(finalContent, capturedImage || undefined, () => {
           // Success callback - redirect to home
-          console.log('mintPost success callback called');
           setContent('');
           setCapturedImage(null);
           onClose();
@@ -83,16 +79,13 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, onPo
 
         if (result) {
           // Transaction submitted successfully
-          console.log('Transaction hash:', result);
         } else {
-          console.log('mintPost returned null');
         }
       } catch (error) {
         console.error('Failed to create post:', error);
         toast.error('Failed to create post. Please try again.');
       }
     } else {
-      console.log('Validation failed:', { hasContent: !!content.trim(), hasImage: !!capturedImage, remainingChars });
       toast.error('Please add some content or an image to your post');
     }
   };
@@ -103,14 +96,10 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, onPo
   };
 
   const handleStartCamera = async () => {
-    console.log('Starting camera...');
     const success = await startCamera();
-    console.log('Camera start result:', success);
     if (success) {
       setActiveTab('camera');
-      console.log('Switched to camera tab');
     } else {
-      console.log('Failed to start camera');
     }
   };
 

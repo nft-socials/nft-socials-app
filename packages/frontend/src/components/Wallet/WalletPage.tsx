@@ -5,10 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import { Wallet, LogOut, Gem, Shield, Zap } from 'lucide-react';
 import { useStarknetWallet } from '@/hooks/useStarknetWallet';
 import { useXverseWallet } from '@/hooks/useXverseWallet';
-import MobileWalletModal from './MobileWalletModal';
+import UnifiedWalletModal from './UnifiedWalletModal';
 
 const WalletPage: React.FC = () => {
-  const { isConnected, address, connectWallet, disconnectWallet, isConnecting, availableConnectors } = useStarknetWallet();
+  const { isConnected, address, disconnectWallet } = useStarknetWallet();
   const {
     isConnected: isXverseConnected,
     address: xverseAddress,
@@ -169,12 +169,11 @@ const WalletPage: React.FC = () => {
           <div className="space-y-3 mt-6">
             <Button
               onClick={() => setShowWalletModal(true)}
-              disabled={isConnecting}
               className="w-full bg-primary hover:bg-primary/90 animate-scale-in"
               size="lg"
             >
               <Wallet className="w-4 h-4 mr-2" />
-              {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+              Connect Wallet
             </Button>
           </div>
         </div>
@@ -228,13 +227,13 @@ const WalletPage: React.FC = () => {
         </div>
       </Card>
 
-      {/* Mobile-friendly wallet connection modal */}
-      <MobileWalletModal
+      {/* Unified wallet connection modal */}
+      <UnifiedWalletModal
         isOpen={showWalletModal}
         onClose={() => setShowWalletModal(false)}
-        onConnect={connectWallet}
-        availableConnectors={availableConnectors}
-        isConnecting={isConnecting}
+        onSuccess={() => setShowWalletModal(false)}
+        title="Connect Wallet"
+        description="Choose a wallet to connect to your account"
       />
     </div>
   );

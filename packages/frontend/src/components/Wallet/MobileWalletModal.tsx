@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Wallet, ExternalLink, Smartphone, Download, AlertCircle } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 import { useXverseWallet } from '@/hooks/useXverseWallet';
+import { useAnyWallet } from '@/hooks/useAnyWallet';
 
 interface MobileWalletModalProps {
   isOpen: boolean;

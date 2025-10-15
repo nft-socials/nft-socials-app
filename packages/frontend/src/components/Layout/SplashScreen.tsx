@@ -138,4 +138,3 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete, duration = 3000
 };
 
 export default SplashScreen;
-

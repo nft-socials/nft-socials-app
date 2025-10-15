@@ -117,7 +117,6 @@ export interface Database {
 export const setUserContext = async (userAddress: string) => {
   // RLS is disabled, so this function is a no-op
   // Keeping it for potential future use
-  console.log('User context set for:', userAddress);
 };
 
 // Helper function to create a normalized chat ID from two addresses

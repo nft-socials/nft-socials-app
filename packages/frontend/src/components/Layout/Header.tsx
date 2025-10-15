@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Wallet, LogOut, Plus } from 'lucide-react';
 import { useStarknetWallet } from '@/hooks/useStarknetWallet';
 import { useXverseWallet } from '@/hooks/useXverseWallet';
-import MobileWalletModal from '../Wallet/MobileWalletModal';
+import { useAnyWallet } from '@/hooks/useAnyWallet';
+import UnifiedWalletModal from '../Wallet/UnifiedWalletModal';
 import onePostNftLogo from '@/Images/onepostnft_image.png';
 
 interface HeaderProps {
@@ -14,20 +15,22 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ onCreatePost, canCreatePost }) => {
-  const { isConnected, address, connectWallet, disconnectWallet, isConnecting, availableConnectors } = useStarknetWallet();
+  const { isConnected, address, disconnectWallet, isConnecting, availableConnectors } = useStarknetWallet();
   const {
     isConnected: isXverseConnected,
     address: xverseAddress,
     disconnect: disconnectXverse
   } = useXverseWallet();
+  const { isConnected: isAnyWalletConnected, address: anyWalletAddress } = useAnyWallet();
   const [showWalletModal, setShowWalletModal] = useState(false);
 
   const truncateAddress = (addr: string) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
 
-  // Check if any wallet is connected
-  const anyWalletConnected = isConnected || isXverseConnected;
+  const handleConnectWallet = () => {
+    setShowWalletModal(true);
+  };
 
   return (
     <Card className="border-border bg-card animate-fade-in rounded-t-xl fixed mx-auto max-w-[875px] top-0 left-0 right-0 z-50">
@@ -59,8 +62,27 @@ const Header: React.FC<HeaderProps> = ({ onCreatePost, canCreatePost }) => {
             Create Post
           </Button>
 
+          {/* Mobile wallet connect button */}
+          <div className="block md:hidden">
+            {isAnyWalletConnected ? (
+              <Badge variant="outline" className="text-xs px-2 py-1">
+                {truncateAddress(anyWalletAddress!)}
+              </Badge>
+            ) : (
+              <Button
+                onClick={handleConnectWallet}
+                size="sm"
+                className="bg-primary hover:bg-primary/90 animate-scale-in text-xs px-3 py-1"
+              >
+                <Wallet className="w-3 h-3 mr-1" />
+                Connect
+              </Button>
+            )}
+          </div>
+
+          {/* Desktop wallet section */}
           <div className="hidden md:block">
-            {anyWalletConnected ? (
+            {isAnyWalletConnected ? (
               <div className="flex items-center gap-2 animate-slide-up">
                 {/* Starknet Wallet */}
                 {isConnected && address && (
@@ -105,20 +127,20 @@ const Header: React.FC<HeaderProps> = ({ onCreatePost, canCreatePost }) => {
                 className="bg-primary hover:bg-primary/90 animate-scale-in"
               >
                 <Wallet className="w-4 h-4 mr-2" />
-                {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+                Connect Wallet
               </Button>
             )}
           </div>
         </div>
       </div>
 
-      {/* Mobile-friendly wallet connection modal */}
-      <MobileWalletModal
+      {/* Unified wallet connection modal */}
+      <UnifiedWalletModal
         isOpen={showWalletModal}
         onClose={() => setShowWalletModal(false)}
-        onConnect={connectWallet}
-        availableConnectors={availableConnectors}
-        isConnecting={isConnecting}
+        onSuccess={() => setShowWalletModal(false)}
+        title="Connect Wallet"
+        description="Choose a wallet to connect to the platform"
       />
     </Card>
   );

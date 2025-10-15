@@ -1,6 +1,6 @@
 import { useSwipeable } from 'react-swipeable';
 import { useCallback } from 'react';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 export interface SwipeGestureOptions {
   onSwipeLeft?: () => void;
@@ -52,7 +52,6 @@ export const usePostSwipeActions = (
   postId: string,
   onLike?: () => void,
   onShare?: () => void,
-  onSwapPropose?: () => void,
   onBookmark?: () => void
 ) => {
   const swipeHandlers = useSwipeGestures({
@@ -61,19 +60,13 @@ export const usePostSwipeActions = (
       onLike?.();
       toast.success('❤️ Liked!', { duration: 1000 });
     }, [onLike]),
-    
+
     onSwipeRight: useCallback(() => {
       // Swipe right to share
       onShare?.();
       toast.success('📤 Shared!', { duration: 1000 });
     }, [onShare]),
-    
-    onSwipeUp: useCallback(() => {
-      // Swipe up to propose swap
-      onSwapPropose?.();
-      toast.success('🔄 Swap proposed!', { duration: 1000 });
-    }, [onSwapPropose]),
-    
+
     onSwipeDown: useCallback(() => {
       // Swipe down to bookmark (toast removed to prevent interference with scrolling)
       onBookmark?.();

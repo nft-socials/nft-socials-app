@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Wallet } from 'lucide-react';
-import { useStarknetWallet } from '@/hooks/useStarknetWallet';
-import MobileWalletModal from './MobileWalletModal';
+import { useAnyWallet } from '@/hooks/useAnyWallet';
+import UnifiedWalletModal from './UnifiedWalletModal';
 
 interface ConnectWalletButtonProps {
   className?: string;
@@ -15,29 +15,33 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({
   size = 'default',
   variant = 'default'
 }) => {
-  const { connectWallet, isConnecting, availableConnectors } = useStarknetWallet();
+  const { isConnected } = useAnyWallet();
   const [showWalletModal, setShowWalletModal] = useState(false);
+
+  // If already connected, don't show the button or show different text
+  if (isConnected) {
+    return null; // or return a "Connected" button if you prefer
+  }
 
   return (
     <>
       <Button
         onClick={() => setShowWalletModal(true)}
-        disabled={isConnecting}
         className={`bg-primary hover:bg-primary/90 ${className}`}
         size={size}
         variant={variant}
       >
         <Wallet className="w-4 h-4 mr-2" />
-        {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+        Connect Wallet
       </Button>
 
-      {/* Mobile-friendly wallet connection modal */}
-      <MobileWalletModal
+      {/* Unified wallet connection modal */}
+      <UnifiedWalletModal
         isOpen={showWalletModal}
         onClose={() => setShowWalletModal(false)}
-        onConnect={connectWallet}
-        availableConnectors={availableConnectors}
-        isConnecting={isConnecting}
+        onSuccess={() => setShowWalletModal(false)}
+        title="Connect Wallet"
+        description="Choose a wallet to connect to the platform"
       />
     </>
   );

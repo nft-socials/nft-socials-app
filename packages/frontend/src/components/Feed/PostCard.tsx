@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Sparkles, ArrowUpDown, Heart, Tag, Image as ImageIcon, ShoppingCart, MessageCircle } from 'lucide-react';
+import { Clock, Sparkles, Heart, Tag, Image as ImageIcon, ShoppingCart, MessageCircle } from 'lucide-react';
 import { Post } from '@/context/AppContext';
 import { usePostSwipeActions } from '@/hooks/useSwipeGestures';
 import { getFromIPFS, PostMetadata } from '@/services/ipfs';
-import { useAccount } from '@starknet-react/core';
+import { useProtectedAction } from '@/context/GuestBrowsingContext';
+import { useAnyWallet } from '@/hooks/useAnyWallet';
 import ImageZoomModal from '@/components/Modals/ImageZoomModal';
 import { formatTimeAgo } from '@/utils/timeUtils';
 import onePostNftLogo from '@/Images/onepostnft_image.png';
@@ -14,8 +15,6 @@ import onePostNftLogo from '@/Images/onepostnft_image.png';
 
 interface PostCardProps {
   post: Post;
-  onSwapClick?: (post: Post) => void;
-  showSwapButton?: boolean;
   onLike?: (post: Post) => void;
   onShare?: (post: Post) => void;
   onSell?: (post: Post) => void;
@@ -32,8 +31,6 @@ interface PostCardProps {
 
 const PostCard: React.FC<PostCardProps> = ({
   post,
-  onSwapClick,
-  showSwapButton = false,
   onLike,
   onShare,
   onSell,
@@ -51,7 +48,8 @@ const PostCard: React.FC<PostCardProps> = ({
   const [isLoadingMetadata, setIsLoadingMetadata] = useState(false);
   const [showChatOption, setShowChatOption] = useState(false);
   const [showImageZoom, setShowImageZoom] = useState(false);
-  const { address } = useAccount();
+  const { address } = useAnyWallet();
+  const { executeProtectedAction } = useProtectedAction();
 
   // Fetch IPFS metadata to get image and full content
   useEffect(() => {
@@ -59,10 +57,8 @@ const PostCard: React.FC<PostCardProps> = ({
       if (post.contentHash) {
         setIsLoadingMetadata(true);
         try {
-          // console.log('Fetching metadata for post:', post.tokenId, 'hash:', post.contentHash);
           const data = await getFromIPFS<PostMetadata>(post.contentHash);
           if (data) {
-            // console.log('Fetched metadata:', data);
             setMetadata(data);
           }
         } catch (error) {
@@ -88,8 +84,9 @@ const PostCard: React.FC<PostCardProps> = ({
   const isPostOwner = address && post.currentOwner.toLowerCase() === address.toLowerCase();
 
   const handleBuyClick = () => {
-    setShowChatOption(true);
-    onBuy?.(post);
+    executeProtectedAction('buy_nft', () => {
+      onBuy?.(post);
+    });
   };
 
   const handleChatClick = () => {
@@ -142,11 +139,9 @@ const PostCard: React.FC<PostCardProps> = ({
     post.tokenId,
     () => onLike?.(post),
     () => isPostOwner ? onSell?.(post) : onShare?.(post),
-    () => onSwapClick?.(post),
-    () => console.log('Bookmarked:', post.tokenId)
   );
 
-  const getSwapStatus = () => {
+  const getPostStatus = () => {
     // If post is for sale, show for sale status
     if (isForSale) {
       return { status: 'for-sale', color: 'bg-green-500/20 text-green-400', label: 'For Sale' };
@@ -157,19 +152,16 @@ const PostCard: React.FC<PostCardProps> = ({
     //   return { status: 'sold', color: 'bg-gray-500/20 text-gray-400', label: 'Sold' };
     // }
 
-    if (!post.isSwappable) {
-      const hoursSincePost = (Date.now() - post.timestamp) / (1000 * 60 * 60);
-      if (hoursSincePost < 24) {
-        return { status: 'today', color: 'bg-blue-500/20 text-blue-400', label: "Today's Post" };
-      }
-      return { status: 'cooldown', color: 'bg-orange-500/20 text-orange-400', label: 'Cooldown' };
+    const hoursSincePost = (Date.now() - post.timestamp) / (1000 * 60 * 60);
+    if (hoursSincePost < 24) {
+      return { status: 'today', color: 'bg-blue-500/20 text-blue-400', label: "Today's Post" };
     }
 
     // Default status for posts that are not for sale
-    return { status: 'available', color: 'bg-purple-500/20 text-purple-400', label: 'Not for sale' };
+    return { status: 'available', color: 'bg-purple-500/20 text-purple-400', label: 'Available' };
   };
 
-  const swapStatus = getSwapStatus();
+  const postStatus = getPostStatus();
 
   return (
     <Card
@@ -204,8 +196,8 @@ const PostCard: React.FC<PostCardProps> = ({
             </div>
           </div>
           
-          <Badge className={`${swapStatus.color} border-0 text-nowrap`}>
-            {swapStatus.label}
+          <Badge className={`${postStatus.color} border-0 text-nowrap`}>
+            {postStatus.label}
           </Badge>
         </div>
 
@@ -266,7 +258,7 @@ const PostCard: React.FC<PostCardProps> = ({
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => onLike?.(post)}
+                onClick={() => executeProtectedAction('like_post', () => onLike?.(post))}
                 className={`flex items-center gap-1 h-8 px-2 hover:bg-primary/10 transition-colors ${
                   isLiked ? 'text-primary' : 'text-muted-foreground hover:text-primary'
                 }`}
@@ -280,7 +272,7 @@ const PostCard: React.FC<PostCardProps> = ({
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => onSell?.(post)}
+                  onClick={() => executeProtectedAction('sell_nft', () => onSell?.(post))}
                   className="flex items-center gap-1 h-8 px-2 text-muted-foreground hover:text-green-500 hover:bg-green-500/10 transition-colors"
                 >
                   <Tag className="w-4 h-4" />
@@ -341,7 +333,7 @@ const PostCard: React.FC<PostCardProps> = ({
 
         {/* Mobile swipe hint */}
         <div className="md:hidden mt-3 text-xs text-muted-foreground text-center opacity-50 border-t border-border pt-2">
-          ← Like • mint → • ↑ sell/buy • ↓ Save
+          ← Like • Share → • ↓ Save
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { WalletProvider } from '@/context/WalletContext';
 import { AppProvider, useAppContext } from '@/context/AppContext';
+import { GuestBrowsingProvider } from '@/context/GuestBrowsingContext';
 import '@/styles/content-protection.css';
 import { useAccount } from '@starknet-react/core';
 import { Toaster, toast } from '@/components/ui/sonner';
@@ -9,17 +10,18 @@ import MobileNavigation from '@/components/Layout/MobileNavigation';
 import DesktopNavigation from '@/components/Layout/DesktopNavigation';
 import CreatePostModal from '@/components/Post/CreatePostModal';
 import CommunityFeed from '@/components/Feed/CommunityFeed';
-import BrowseSwaps from '@/components/Swap/BrowseSwaps';
+
 import ProfileView from '@/components/Profile/ProfileView';
 import MarketplaceGrid from '@/components/Marketplace/MarketplaceGrid';
 import ChatsPage from '@/components/Chat/ChatsPage';
 import WalletPage from '@/components/Wallet/WalletPage';
 import UserPosts from '@/components/Profile/UserPosts';
-import NotificationDropdown from '@/components/Notifications/NotificationDropdown';
 import NotificationsPage from '@/components/Notifications/NotificationsPage';
+import WalletPrompt from '@/components/Wallet/WalletPrompt';
 import { useNotificationCounts } from '@/hooks/useNotificationCounts';
 import SplashScreen from '@/components/Layout/SplashScreen';
 import DashboardInfo from './DashboardInfo';
+import { trackInteraction } from '@/utils/userInteraction';
 
 const IndexContent: React.FC = () => {
   // ALL STATE HOOKS FIRST
@@ -31,11 +33,13 @@ const IndexContent: React.FC = () => {
   // ALL CONTEXT/CUSTOM HOOKS NEXT
   const { counts, refreshCounts } = useNotificationCounts();
   const { isConnected } = useAccount();
-  const { state, refreshFeed } = useAppContext();
+  const { state, refreshFeed, checkForNewPosts } = useAppContext();
 
   // CALLBACK FUNCTIONS
   const handleTabChange = (tab: string) => {
     setActiveTab(tab as typeof activeTab);
+    // Track navigation as user interaction
+    trackInteraction('navigation');
   };
 
   const handleSplashComplete = useCallback(() => {
@@ -181,18 +185,19 @@ const IndexContent: React.FC = () => {
       />
 
       <div className="container mx-auto px-2 sm:px-4 max-w-4xl">
-        <main className="animate-fade-in pb-24 md:pb-4 px-1 sm:px-0 pt-24 md:pt-44">
+        <main className="animate-fade-in pb-24 md:pb-4 px-1 sm:px-0 pt-10 md:pt-44">
             {activeTab === 'feed' && (
               <CommunityFeed
                 isLoading={state.isLoading}
                 posts={state.posts}
                 onRefresh={refreshFeed}
                 onNavigate={handleTabChange}
+                hasNewPosts={state.hasNewPosts}
+                onCheckNewPosts={checkForNewPosts}
               />
             )}
             {activeTab === 'Chats' && <ChatsPage onChatCountChange={refreshCounts} />}
             {activeTab === 'marketplace' && <MarketplaceGrid onNavigate={handleTabChange} />}
-            {activeTab === 'swaps' && <BrowseSwaps />}
             {activeTab === 'profile' && <ProfileView isConnected={isConnected} onNavigate={handleTabChange} />}
             {activeTab === 'user-nfts' && <UserPosts />}
             {activeTab === 'wallet' && <WalletPage />}
@@ -219,9 +224,12 @@ const IndexContent: React.FC = () => {
 const Index = () => {
   return (
     <WalletProvider>
-      <AppProvider>
-        <IndexContent />
-      </AppProvider>
+      <GuestBrowsingProvider>
+        <AppProvider>
+          <IndexContent />
+          <WalletPrompt />
+        </AppProvider>
+      </GuestBrowsingProvider>
     </WalletProvider>
   );
 };

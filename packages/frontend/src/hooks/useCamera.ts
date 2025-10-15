@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
 
@@ -202,6 +202,18 @@ export const useCamera = () => {
       return [];
     }
   }, [state.isSupported]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      setState(prev => {
+        if (prev.stream) {
+          prev.stream.getTracks().forEach(track => track.stop());
+        }
+        return prev;
+      });
+    };
+  }, []);
 
   return {
     ...state,

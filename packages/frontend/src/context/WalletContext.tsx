@@ -34,7 +34,6 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
   // Xverse wallet state
   const [xverseAddress, setXverseAddress] = useState<string | null>(null);
   const [xversePublicKey, setXversePublicKey] = useState<string | null>(null);
-
   // Create Starknet connectors - argent() and braavos() work on both desktop and mobile
   const connectors: InjectedConnector[] = [argent(), braavos()];
 

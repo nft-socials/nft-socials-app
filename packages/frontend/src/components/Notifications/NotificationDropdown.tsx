@@ -10,7 +10,7 @@ import {
 import { Bell, Heart, ShoppingCart, MessageCircle, User, Copy } from 'lucide-react';
 import { useAccount } from '@starknet-react/core';
 import { NotificationService, type Notification } from '@/services/notificationService';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 interface NotificationDropdownProps {
   onNavigate?: (tab: string) => void;

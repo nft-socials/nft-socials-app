@@ -411,8 +411,13 @@ const ChatsPage: React.FC<ChatsPageProps> = ({ onChatCountChange }) => {
   };
 
   const handleBuyNFT = async (nft: any) => {
-    if (!address || !account) {
+    if (!address) {
       toast.error('🔐 Please connect your wallet to buy NFTs');
+      return;
+    }
+
+    if (!account) {
+      toast.error('🔗 Please connect a Starknet wallet (Argent or Braavos) to buy NFTs. Xverse wallet is for viewing only.');
       return;
     }
 

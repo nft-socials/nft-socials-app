@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 export interface NotificationState {
   isSupported: boolean;
@@ -139,7 +139,6 @@ export const useNotifications = () => {
 
     try {
       const registration = await navigator.serviceWorker.register('/sw.js');
-      console.log('Service worker registered:', registration);
       setState(prev => ({ ...prev, isSubscribed: true }));
       return true;
     } catch (error) {

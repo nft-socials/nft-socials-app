@@ -2,7 +2,7 @@ import { Contract, Provider, AccountInterface } from 'starknet';
 import type { Post as AppPost } from '@/context/AppContext';
 import deployedContracts from '../../contracts/deployedContracts';
 import { universalStrkAddress, strkAbi } from '../../utils/Constants';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 // Get contract info from deployedContracts
 const CONTRACT_INFO = deployedContracts.sepolia.OnePostDaily;
@@ -115,7 +115,7 @@ const toAppPost = async (p: any): Promise<AppPost> => {
     contentHash,
     content,
     timestamp: Number(BigInt(p.timestamp ?? Math.floor(Date.now() / 1000)) * 1000n),
-    isSwappable: Boolean(p.is_swappable ?? p.isSwappable ?? true),
+    isSwappable: Boolean(p.is_for_sale ?? p.isForSale ?? false),
     isForSale: Boolean(p.is_for_sale ?? p.isForSale ?? false),
     price: Number(p.price ?? 0),
   };

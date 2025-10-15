@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw, Loader2, Heart, Share2 } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 import { useAccount } from '@starknet-react/core';
+import { useAnyWallet } from '@/hooks/useAnyWallet';
 import { cancelSell, buyPost } from '@/services/contract';
 import PostCard from '@/components/Feed/PostCard';
 import SellModal from '@/components/Modals/SellModal';
@@ -16,14 +17,17 @@ interface CommunityFeedProps {
   posts: Post[];
   onRefresh: () => void;
   onNavigate?: (tab: string) => void;
+  hasNewPosts?: boolean;
+  onCheckNewPosts?: () => void;
 }
 
-const CommunityFeed: React.FC<CommunityFeedProps> = ({ isLoading, posts, onRefresh, onNavigate }) => {
+const CommunityFeed: React.FC<CommunityFeedProps> = ({ isLoading, posts, onRefresh, onNavigate, hasNewPosts, onCheckNewPosts }) => {
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
   const [sellModalOpen, setSellModalOpen] = useState(false);
   const [selectedPostForSell, setSelectedPostForSell] = useState<Post | null>(null);
-  const { address, account } = useAccount();
+  const { account } = useAccount(); // For Starknet transactions
+  const { address, isConnected } = useAnyWallet(); // For wallet detection
 
   // Load initial like data
   useEffect(() => {
@@ -59,23 +63,19 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ isLoading, posts, onRefre
     loadLikeData();
   }, [address, posts]);
 
-  // Auto-refresh posts that are still loading from IPFS
+  // Check for new posts periodically without auto-refreshing
   useEffect(() => {
-    const loadingPosts = posts.filter(post =>
-      post.content === 'Loading content from IPFS...' ||
-      post.content === 'Failed to load content from IPFS'
-    );
+    if (!onCheckNewPosts) return;
 
-    if (loadingPosts.length > 0) {
-      console.log(`Found ${loadingPosts.length} posts still loading from IPFS, will retry in 5 seconds`);
-      const timer = setTimeout(() => {
-        console.log('Retrying to load IPFS content...');
-        onRefresh();
-      }, 5000); // Retry after 5 seconds
+    // Check for new posts every 30 seconds instead of auto-refreshing
+    const interval = setInterval(() => {
+      if (!isLoading) {
+        onCheckNewPosts();
+      }
+    }, 30000);
 
-      return () => clearTimeout(timer);
-    }
-  }, [posts, onRefresh]);
+    return () => clearInterval(interval);
+  }, [isLoading, onCheckNewPosts]);
 
   const handleLike = async (post: Post) => {
     if (!address) {
@@ -125,10 +125,7 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ isLoading, posts, onRefre
     }
   };
 
-  const handleSwapPropose = (post: Post) => {
-    toast.success(`🔄 Swap proposal for NFT #${post.tokenId}!`);
-    // Implement actual swap proposal logic
-  };
+
 
   const handleSell = (post: Post) => {
     setSelectedPostForSell(post);
@@ -142,8 +139,13 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ isLoading, posts, onRefre
   };
 
   const handleBuy = async (post: Post) => {
-    if (!account) {
+    if (!isConnected) {
       toast.error('🔐 Please connect your wallet to buy NFT');
+      return;
+    }
+
+    if (!account) {
+      toast.error('🔗 Please connect a Starknet wallet (Argent or Braavos) to buy NFTs. Xverse wallet is for viewing only.');
       return;
     }
 
@@ -151,7 +153,7 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ isLoading, posts, onRefre
 
     try {
       loadingToast = toast.loading('💳 Processing purchase...');
-      const txHash = await buyPost(account, post.tokenId);
+      await buyPost(account, post.tokenId);
 
       // Dismiss loading toast before showing success
       if (loadingToast) {
@@ -197,7 +199,7 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ isLoading, posts, onRefre
       loadingToast = toast.loading('🔄 Canceling listing...');
       // Note: cancelSell typically takes a proposal ID, but we'll use tokenId for now
       // This might need adjustment based on your contract implementation
-      const txHash = await cancelSell(account, post.tokenId);
+      await cancelSell(account, post.tokenId);
 
       // Dismiss loading toast before showing success
       if (loadingToast) {
@@ -260,6 +262,26 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ isLoading, posts, onRefre
           </Button>
         </div>
 
+        {/* New Posts Notification */}
+        {hasNewPosts && (
+          <div className="mb-4 p-3 bg-primary/10 border border-primary/20 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                <span className="text-sm font-medium text-primary">New posts available</span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onRefresh}
+                className="text-primary border-primary hover:bg-primary hover:text-primary-foreground"
+              >
+                Load new posts
+              </Button>
+            </div>
+          </div>
+        )}
+
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -293,8 +315,7 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ isLoading, posts, onRefre
                   onBuy={handleBuy}
                   onCancelSell={handleCancelSell}
                   onChat={handleChat}
-                  onSwapClick={handleSwapPropose}
-                  showSwapButton={post.isSwappable}
+
                   isLiked={likedPosts.has(post.tokenId)}
                   likeCount={likeCounts[post.tokenId] || 0}
                   isOwner={isOwner}

@@ -3,7 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useEffect } from "react";
-import { toast } from "react-hot-toast";
+import { toast } from "sonner";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -14,9 +14,8 @@ const App = () => {
   useEffect(() => {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
-        .then((registration) => {
-          console.log('Service Worker registered:', registration);
-          toast.success('App is ready for offline use!');
+        .then((_registration) => {
+          toast.success('App ready for you!');
         })
         .catch((error) => {
           console.error('Service Worker registration failed:', error);
