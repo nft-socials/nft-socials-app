@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Wallet, Smartphone, Download, AlertCircle } from 'lucide-react';
 import { useConnect, useAccount } from '@starknet-react/core';
+import { useAnyWallet } from '@/hooks/useAnyWallet';
+import { useXverseWallet } from '@/hooks/useXverseWallet';
 import { toast } from 'sonner';
 
 interface WalletSelectionModalProps {
@@ -28,6 +30,8 @@ const WalletSelectionModal: React.FC<WalletSelectionModalProps> = ({
 }) => {
   const { connect, connectors } = useConnect();
   const { status } = useAccount();
+  const { isConnected } = useAnyWallet();
+  const { connect: connectXverse, isConnected: isXverseConnected } = useXverseWallet();
   const [connectingWalletId, setConnectingWalletId] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [toastShown, setToastShown] = useState(false);
@@ -37,7 +41,7 @@ const WalletSelectionModal: React.FC<WalletSelectionModalProps> = ({
   }, []);
 
   useEffect(() => {
-    if (status === 'connected' && connectingWalletId && !toastShown) {
+    if ((status === 'connected' || isXverseConnected) && connectingWalletId && !toastShown) {
       setToastShown(true);
       toast.success('Wallet connected successfully!');
       if (onSuccess) {
@@ -45,7 +49,7 @@ const WalletSelectionModal: React.FC<WalletSelectionModalProps> = ({
       }
       onClose();
     }
-  }, [status, connectingWalletId, onSuccess, onClose, toastShown]);
+  }, [status, isXverseConnected, connectingWalletId, onSuccess, onClose, toastShown]);
 
   const walletOptions: WalletOption[] = [
     {
@@ -85,6 +89,12 @@ const WalletSelectionModal: React.FC<WalletSelectionModalProps> = ({
     try {
       setToastShown(false);
       setConnectingWalletId(walletId);
+
+      // Handle Xverse wallet separately
+      if (walletId === 'xverse') {
+        await connectXverse();
+        return;
+      }
 
       const connector = connectors.find(c =>
         c.id.toLowerCase().includes(walletId.toLowerCase()) ||

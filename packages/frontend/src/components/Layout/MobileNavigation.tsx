@@ -7,15 +7,16 @@ import {
   User,
   Menu,
   X,
-  Gem,
   ArrowUpDown,
   Bell,
   MessageCircle,
+  Sparkles,
   Wallet
 } from 'lucide-react';
 import { useNavigationSwipeActions } from '@/hooks/useSwipeGestures';
 import { useGuestBrowsing } from '@/context/GuestBrowsingContext';
-import { useAccount } from '@starknet-react/core';
+import { useAnyWallet } from '@/hooks/useAnyWallet';
+import onePostNftLogo from '@/Images/onepostnft_image.png';
 
 interface MobileNavigationProps {
   activeTab: string;
@@ -36,7 +37,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { showWalletPrompt } = useGuestBrowsing();
-  const { isConnected } = useAccount();
+  const { isConnected } = useAnyWallet();
 
   const navigationItems = [
     { id: 'feed', label: 'Home', icon: Home },
@@ -64,17 +65,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
 
   const handleTabClick = (item: { id: string; action?: () => void }) => {
     if (item.action && item.id === 'create') {
-      if (canCreatePost) {
-        // User is connected and can create post
-        item.action();
-      } else {
-        // User is not connected, show wallet prompt with callback to open create modal
-        showWalletPrompt('create_post', () => {
-          if (item.action) {
-            item.action();
-          }
-        });
-      }
+      item.action();
     } else if (item.id === 'more') {
       setIsMenuOpen(true);
     } else {
@@ -97,9 +88,11 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
             {navigationItems.map((item) => {
               const Icon = item.icon;
               // Only one button can be active at a time
-              const isActive = item.id === 'feed' ? activeTab === 'feed'
-                             : item.id === 'more' ? isMoreMenuActive
-                             : false;
+              // Only one button can be active at a time
+              const isActive = item.id === 'feed' ? activeTab === 'feed' && !isMoreMenuActive
+                            : item.id === 'more' ? isMoreMenuActive
+                            : false;
+
               const isCreateButton = item.id === 'create';
 
               return (
@@ -114,12 +107,15 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                       : 'text-muted-foreground hover:text-foreground'
                   } ${
                     isCreateButton
-                      ? 'text-primary hover:bg-primary/90'
+                      ? 'text-primary-foreground hover:bg-primary/90'
                       : ''
                   }`}
                 >
                   <Icon className={`w-5 h-5 ${isCreateButton ? 'animate-pulse-glow' : ''}`} />
-                  <span className="text-xs font-medium">{item.label}</span>                 
+                  <span className="text-xs font-medium">{item.label}</span>
+                  {isActive && !isCreateButton && (
+                    <div className="w-1 h-1 rounded-full bg-success animate-pulse" />
+                  )}
                 </Button>
               );
             })}
@@ -149,7 +145,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                 <Icon className={`w-4 h-4 ${isCreateButton ? 'animate-pulse-glow' : ''}`} />
                 {item.label}
                 {isActive && (
-                  <Gem className="w-3 h-3 animate-pulse" />
+                  <Sparkles className="w-3 h-3 animate-pulse" />
                 )}
               </Button>
             );
@@ -228,7 +224,13 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                   onClick={() => handleTabClick({ id: 'wallet' })}
                   className="w-full justify-start"
                 >
-                  <Gem className="w-4 h-4 mr-3" />
+                  <div className="w-4 h-4 mr-3 rounded overflow-hidden flex items-center justify-center">
+                    <img
+                      src={onePostNftLogo}
+                      alt="Wallet"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                   Wallet
                 </Button>
 

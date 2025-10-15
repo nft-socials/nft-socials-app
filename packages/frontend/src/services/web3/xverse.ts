@@ -1,138 +1,152 @@
-import { InjectedConnector, InjectedConnectorOptions } from "@starknet-react/core";
+/**
+ * Xverse Wallet Connector for Bitcoin
+ * Uses the sats-connect API that Xverse provides
+ */
 
-export class XverseConnector extends InjectedConnector {
-  constructor() {
-    const options: InjectedConnectorOptions = {
-      id: "xverse",
-      name: "Xverse Wallet",
-    };
-    super({ options });
+interface XverseWindow extends Window {
+  BitcoinProvider?: any;
+}
+
+declare const window: XverseWindow;
+
+export class XverseConnector {
+  id = "xverse";
+  name = "Xverse Wallet";
+  icon = {
+    dark: "https://www.xverse.app/favicon.ico",
+    light: "https://www.xverse.app/favicon.ico",
+  };
+
+  private connectedAddress: string | null = null;
+  private connectedPublicKey: string | null = null;
+
+  /**
+   * Check if Xverse wallet is installed
+   */
+  available(): boolean {
+    return true; // Always show in wallet list
   }
 
-  get id() {
-    return "xverse";
-  }
-
-  get name() {
-    return "Xverse Wallet";
-  }
-
-  get icon() {
-    return "🔶";
-  }
-
-  available() {
+  /**
+   * Check if Xverse is actually installed and ready
+   */
+  async ready(): Promise<boolean> {
     if (typeof window === "undefined") return false;
-    
-    // Check for XverseProviders object
-    const xverseProviders = (window as any).XverseProviders;
-    if (xverseProviders?.StarknetProvider) return true;
-    
-    // Check for starknet provider
-    const starknet = (window as any).starknet;
-    if (starknet && starknet.id === "xverse") return true;
-    
-    // Check for starknet_xverse
-    const starknetXverse = (window as any).starknet_xverse;
-    if (starknetXverse && starknetXverse.id === "xverse") return true;
-
-    return false;
+    // Check if BitcoinProvider exists (Xverse injects this)
+    return !!(window.BitcoinProvider);
   }
 
-  async ready() {
-    if (!this.available()) {
-      throw new Error("Xverse wallet not found");
+  /**
+   * Connect to Xverse wallet
+   * This will trigger the Xverse popup
+   */
+  async connect(): Promise<{ address: string; publicKey: string }> {
+    if (typeof window === "undefined") {
+      throw new Error("Window is not defined");
     }
 
-    const provider = this._getStarknetProvider();
-    if (!provider) {
-      throw new Error("Xverse Starknet provider not found");
-    }
+    // Check if Xverse is installed
+    const isInstalled = await this.ready();
 
-    return provider;
-  }
-
-  private _getStarknetProvider() {
-    if (typeof window === "undefined") return null;
-
-    // Try XverseProviders first (this is what we see in the debug output)
-    const xverseProviders = (window as any).XverseProviders;
-    if (xverseProviders?.StarknetProvider) {
-      return xverseProviders.StarknetProvider;
-    }
-
-    // Try global starknet (this is also available)
-    const starknet = (window as any).starknet;
-    if (starknet && starknet.id === "xverse") {
-      return starknet;
-    }
-
-    // Try starknet_xverse (this is also available)
-    const starknetXverse = (window as any).starknet_xverse;
-    if (starknetXverse && starknetXverse.id === "xverse") {
-      return starknetXverse;
-    }
-
-    return null;
-  }
-
-  async connect() {
-    const provider = await this.ready();
-    if (!provider) {
-      throw new Error("Xverse Starknet provider not available");
+    if (!isInstalled) {
+      // Open Xverse installation page
+      window.open("https://www.xverse.app/download", "_blank");
+      throw new Error("Xverse Wallet is not installed. Please install it from xverse.app");
     }
 
     try {
-      // Check if already connected
-      if (provider.isConnected && provider.selectedAddress) {
-        const account = provider.selectedAddress;
-        const chainId = provider.chainId || "0x534e5f4d41494e"; // Default to mainnet
+      // Use the BitcoinProvider to request accounts
+      const provider = window.BitcoinProvider;
 
-        return {
-          account,
-          chainId: BigInt(chainId),
-        };
+      if (!provider) {
+        throw new Error("Xverse provider not found");
       }
 
-      // If not connected, try to enable/connect
-      let accounts;
-      if (provider.enable) {
-        accounts = await provider.enable();
-      } else if (provider.request) {
-        accounts = await provider.request({
-          type: "wallet_requestAccounts",
-        });
+      // Request account access - this triggers the Xverse popup
+      const response = await provider.request('getAccounts', {
+        purposes: ['payment', 'ordinals'],
+      });
+
+      if (!response || !response.result || response.result.length === 0) {
+        throw new Error("No accounts returned from Xverse");
       }
 
-      if (!accounts || accounts.length === 0) {
-        throw new Error("No accounts found or user rejected connection");
-      }
+      // Get the payment address
+      const paymentAccount = response.result.find((acc: any) => acc.purpose === 'payment') || response.result[0];
 
-      const account = accounts[0];
-      let chainId;
-
-      try {
-        if (provider.request) {
-          chainId = await provider.request({
-            type: "wallet_requestChainId",
-          });
-        } else {
-          chainId = provider.chainId || "0x534e5f4d41494e";
-        }
-      } catch (error) {
-        chainId = "0x534e5f4d41494e"; // SN_MAIN
-      }
+      this.connectedAddress = paymentAccount.address;
+      this.connectedPublicKey = paymentAccount.publicKey;
 
       return {
-        account,
-        chainId: BigInt(chainId),
+        address: paymentAccount.address,
+        publicKey: paymentAccount.publicKey,
       };
     } catch (error) {
-      throw error;
+      const err = error as Error;
+
+      // Handle user rejection
+      if (err.message?.includes("User rejected") || err.message?.includes("canceled") || err.message?.includes("denied")) {
+        throw new Error("User rejected the connection request");
+      }
+
+      throw new Error(err.message || "Failed to connect to Xverse Wallet");
     }
   }
 
-  async disconnect() {
-    // Xverse doesn't typically need explicit disconnect
+  /**
+   * Disconnect from Xverse wallet
+   */
+  async disconnect(): Promise<void> {
+    try {
+      this.connectedAddress = null;
+      this.connectedPublicKey = null;
+    } catch (error) {
+      console.error("Error disconnecting from Xverse:", error);
+    }
+  }
+
+  /**
+   * Get the connected address
+   */
+  async getAddress(): Promise<string | null> {
+    return this.connectedAddress;
+  }
+
+  /**
+   * Sign a message with Xverse
+   */
+  async signMessage(message: string): Promise<string> {
+    if (!this.connectedAddress) {
+      throw new Error("Xverse wallet is not connected");
+    }
+
+    if (typeof window === "undefined" || !window.BitcoinProvider) {
+      throw new Error("Xverse provider not found");
+    }
+
+    try {
+      const provider = window.BitcoinProvider;
+      const response = await provider.request('signMessage', {
+        address: this.connectedAddress,
+        message: message,
+      });
+
+      if (!response || !response.result) {
+        throw new Error("Failed to sign message");
+      }
+
+      return response.result;
+    } catch (error) {
+      const err = error as Error;
+      throw new Error(err.message || "Failed to sign message");
+    }
   }
 }
+
+/**
+ * Factory function to create Xverse connector instance
+ */
+export function xverse(): XverseConnector {
+  return new XverseConnector();
+}
+

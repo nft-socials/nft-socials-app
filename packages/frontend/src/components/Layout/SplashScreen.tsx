@@ -1,87 +1,138 @@
 import React, { useEffect, useState } from 'react';
-import { Sparkles, Gem } from 'lucide-react';
+import onePostNftLogo from '@/Images/onepostnft_image.png';
 
 interface SplashScreenProps {
   onComplete: () => void;
+  duration?: number; // Total duration in milliseconds
 }
 
-const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
+const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete, duration = 3000 }) => {
   const [isVisible, setIsVisible] = useState(true);
+  const [showText, setShowText] = useState(false);
 
   useEffect(() => {
-    // Check if user has interacted with the dapp before
-    const hasInteracted = localStorage.getItem('hasInteractedWithDapp');
+    // Show animated text after a short delay (500ms after logo appears)
+    const textTimer = setTimeout(() => {
+      setShowText(true);
+    }, 500);
 
-    if (hasInteracted) {
-      // Skip splash for users who have interacted before
-      onComplete();
-      return;
-    }
-
-    // Show splash for 2 seconds for new users
-    const timer = setTimeout(() => {
+    // Hide splash screen and call onComplete after duration
+    const hideTimer = setTimeout(() => {
       setIsVisible(false);
-      // Wait for fade out animation
-      setTimeout(onComplete, 300);
-    }, 2000);
+      // Wait for fade-out animation to complete before calling onComplete
+      setTimeout(() => {
+        onComplete();
+      }, 500);
+    }, duration);
 
-    return () => clearTimeout(timer);
-  }, [onComplete]);
+    return () => {
+      clearTimeout(textTimer);
+      clearTimeout(hideTimer);
+    };
+  }, [onComplete, duration]);
 
   if (!isVisible) {
-    return (
-      <div className="fixed inset-0 bg-background flex items-center justify-center z-50 transition-opacity duration-300 opacity-0">
-        {/* Fade out */}
-      </div>
-    );
+    return null;
   }
 
   return (
-    <div className="fixed inset-0 bg-background flex items-center justify-center z-50 transition-opacity duration-300">
-      <div className="text-center space-y-6 animate-fade-in">
-        {/* Logo/Icon */}
-        <div className="relative">
-          <div className="w-24 h-24 mx-auto bg-primary/10 rounded-full flex items-center justify-center backdrop-blur-sm border border-primary/20">
-            <Gem className="w-12 h-12 text-primary animate-pulse" />
-          </div>
-          <div className="absolute -top-2 -right-2">
-            <Sparkles className="w-8 h-8 text-accent animate-bounce" />
-          </div>
-        </div>
-
-        {/* App Name */}
-        <div className="space-y-2">
-          <h1 className="text-4xl font-bold text-foreground tracking-tight">
-            One Post Daily
-          </h1>
-          <p className="text-lg text-muted-foreground font-medium">
-            NFT Social Platform
-          </p>
-        </div>
-
-        {/* Loading Animation */}
-        <div className="flex justify-center space-x-1">
-          <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-          <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-          <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-        </div>
-
-        {/* Tagline */}
-        <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-          Create, collect, and trade unique daily NFTs on Starknet
-        </p>
+    <div
+      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 via-background to-accent/10 transition-opacity duration-500 ${
+        isVisible ? 'opacity-100' : 'opacity-0'
+      }`}
+    >
+      {/* Animated background circles */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/20 rounded-full blur-3xl animate-pulse delay-1000" />
       </div>
 
-      {/* Skip Button (optional) */}
-      <button
-        onClick={() => {
-          setIsVisible(false);
-          setTimeout(onComplete, 100);
-        }}
-        className="absolute bottom-8 right-8 text-white/60 hover:text-white/80 text-sm transition-colors"
-      >
-        Skip
-      </button>
+      {/* Logo and text container */}
+      <div className="relative z-10 flex flex-col items-center gap-6 animate-fade-in">
+        {/* Logo with scale animation */}
+        <div className="relative animate-scale-in">
+          <div className="absolute inset-0 bg-primary/20 rounded-full blur-2xl animate-pulse" />
+          <img
+            src={onePostNftLogo}
+            alt="OnePostNft Logo"
+            className="relative w-32 h-32 md:w-40 md:h-40 object-contain rounded-2xl shadow-2xl animate-bounce-slow"
+          />
+        </div>
+
+        {/* Animated text */}
+        {showText && (
+          <div className="flex flex-col items-center gap-2">
+            <h1 className="text-xl md:text-5xl font-bold text-[#FFD700] animate-typewriter overflow-hidden whitespace-nowrap border-r-4 border-primary pr-2">
+              OnePostNft
+            </h1>
+            <p className="text-sm md:text-base text-muted-foreground animate-fade-in-up">
+              Powered by Starknet
+            </p>
+          </div>
+        )}
+
+        {/* Loading indicator */}
+        <div className="mt-8 flex gap-2">
+          <div className="w-2 h-2 bg-[#FFD700] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+          <div className="w-2 h-2 bg-[#FFD700] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+          <div className="w-2 h-2 bg-[#FFD700] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+        </div>
+      </div>
+
+      {/* Custom animations */}
+      <style>{`
+        @keyframes typewriter {
+          from {
+            width: 0;
+          }
+          to {
+            width: 100%;
+          }
+        }
+
+        @keyframes blink {
+          50% {
+            border-color: transparent;
+          }
+        }
+
+        @keyframes bounce-slow {
+          0%, 100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-10px);
+          }
+        }
+
+        @keyframes fade-in-up {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .animate-typewriter {
+          animation: typewriter 2s steps(11) 1 normal both,
+                     blink 0.75s step-end infinite;
+        }
+
+        .animate-bounce-slow {
+          animation: bounce-slow 2s ease-in-out infinite;
+        }
+
+        .animate-fade-in-up {
+          animation: fade-in-up 1s ease-out forwards;
+        }
+
+        .delay-1000 {
+          animation-delay: 1s;
+        }
+      `}</style>
     </div>
   );
 };

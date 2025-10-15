@@ -13,6 +13,7 @@ import NFTWalletInfo from '@/components/Info/NFTWalletInfo';
 import SoldNFTsModal from '@/components/Marketplace/SoldNFTsModal';
 import type { Post } from '@/context/AppContext';
 import { useAccount } from '@starknet-react/core';
+import { useAnyWallet } from '@/hooks/useAnyWallet';
 import { fileURLToPath } from 'url';
 import { LikesService } from '@/services/chatService';
 
@@ -29,7 +30,8 @@ const MarketplaceGrid: React.FC<MarketplaceGridProps> = ({ onNavigate }) => {
   const [selectedPostForSell, setSelectedPostForSell] = useState<Post | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'for-sale' | 'my-nfts' | 'sold'>('all');
-  const { address, account } = useAccount();
+  const { account } = useAccount(); // For Starknet transactions
+  const { address, isConnected } = useAnyWallet(); // For wallet detection
 
   // Load initial like data
   useEffect(() => {
@@ -154,9 +156,7 @@ const MarketplaceGrid: React.FC<MarketplaceGridProps> = ({ onNavigate }) => {
     }
   };
 
-  const handleSwap = (post: Post) => {
-    toast.success(`🔄 Swap proposed for NFT #${post.tokenId}!`);
-  };
+
 
   const handleSell = (post: Post) => {
     setSelectedPostForSell(post);
@@ -164,14 +164,19 @@ const MarketplaceGrid: React.FC<MarketplaceGridProps> = ({ onNavigate }) => {
   };
 
   const handleBuy = async (post: Post) => {
+    if (!isConnected) {
+      toast.error('🔐 Please connect your wallet to buy NFTs');
+      return;
+    }
+
     if (!account) {
-      toast.error('Please connect your wallet to buy NFTs');
+      toast.error('🔗 Please connect a Starknet wallet (Argent or Braavos) to buy NFTs. Xverse wallet is for viewing only.');
       return;
     }
 
     try {
       toast.loading('💳 Processing purchase...', { duration: 0 });
-      const txHash = await buyPost(account, post.tokenId);
+      await buyPost(account, post.tokenId);
       toast.dismiss();
       toast.success(`🎉 Successfully purchased NFT #${post.tokenId}! 🚀`, { duration: 4000 });
 
@@ -212,7 +217,7 @@ const MarketplaceGrid: React.FC<MarketplaceGridProps> = ({ onNavigate }) => {
 
     try {
       toast.loading('Canceling listing...');
-      const txHash = await cancelSell(account, post.tokenId);
+      await cancelSell(account, post.tokenId);
       toast.dismiss();
       toast.success(`🎉 Listing canceled for NFT #${post.tokenId}!`);
 
@@ -371,7 +376,7 @@ const MarketplaceGrid: React.FC<MarketplaceGridProps> = ({ onNavigate }) => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-3">
-          {filteredPosts.map((post, i) => {
+          {filteredPosts.map((post) => {
             const isOwner = address && post.currentOwner.toLowerCase() === address.toLowerCase();
             return (
               <PostCard
@@ -383,12 +388,12 @@ const MarketplaceGrid: React.FC<MarketplaceGridProps> = ({ onNavigate }) => {
                 onBuy={handleBuy}
                 onCancelSell={handleCancelSell}
                 onChat={handleChat}
-                onSwapClick={handleSwap}
-                showSwapButton={true}
                 isLiked={likedPosts.has(post.tokenId)}
                 likeCount={likeCounts[post.tokenId] || 0}
                 isOwner={isOwner}
                 isForSale={post.isForSale || false}
+                showBuyButton={!isOwner && post.isForSale}
+                showSellButton={isOwner && !post.isForSale}
               />
             );
           })}          

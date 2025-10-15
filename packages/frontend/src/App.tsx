@@ -1,25 +1,20 @@
-import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { toast } from "sonner";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import SplashScreen from "./components/Layout/SplashScreen";
-import { ScaffoldStarkAppWithProviders } from "./components/Layout/ScaffoldStarkAppWithProviders";
 
 const queryClient = new QueryClient();
 
 const App = () => {
-  const [showSplash, setShowSplash] = useState(true);
-
   // Register service worker for PWA functionality
   useEffect(() => {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
-        .then((registration) => {
+        .then((_registration) => {
           toast.success('App ready for you!');
         })
         .catch((error) => {
@@ -44,15 +39,10 @@ const App = () => {
     }
   }, []);
 
-  if (showSplash) {
-    return <SplashScreen onComplete={() => setShowSplash(false)} />;
-  }
-
   return (
     <QueryClientProvider client={queryClient}>
       {/* <ScaffoldStarkAppWithProviders> */}
       <TooltipProvider>
-        <Toaster />
         <Sonner />
         <BrowserRouter>
           <Routes>

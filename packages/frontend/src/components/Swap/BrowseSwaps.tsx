@@ -11,6 +11,7 @@ import { getAllPosts, cancelSell } from '@/services/contract';
 import { FEED_PAGE_SIZE } from '@/utils/constants';
 import { useToast } from '@/components/ui/use-toast';
 import { useAccount } from '@starknet-react/core';
+import { useAnyWallet } from '@/hooks/useAnyWallet';
 import PostCard from '@/components/Feed/PostCard';
 import SellModal from '@/components/Modals/SellModal';
 import { toast } from 'sonner';
@@ -18,7 +19,8 @@ import { LikesService } from '@/services/chatService';
 
 const BrowseSwaps: React.FC = () => {
   const { state } = useAppContext();
-  const { address, account } = useAccount();
+  const { account } = useAccount(); // For Starknet transactions
+  const { address, isConnected } = useAnyWallet(); // For wallet detection
   const { toast: toastUI } = useToast();
 
   const [swappablePosts, setSwappablePosts] = useState<Post[]>([]);

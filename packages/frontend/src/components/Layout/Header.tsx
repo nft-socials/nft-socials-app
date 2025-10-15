@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Wallet, LogOut, Plus, Gem } from 'lucide-react';
-import { useAccount, useDisconnect } from '@starknet-react/core';
-import { useGuestBrowsing } from '@/context/GuestBrowsingContext';
-import WalletSelectionModal from '@/components/Wallet/WalletSelectionModal';
+import { Wallet, LogOut, Plus } from 'lucide-react';
+import { useStarknetWallet } from '@/hooks/useStarknetWallet';
+import { useXverseWallet } from '@/hooks/useXverseWallet';
+import { useAnyWallet } from '@/hooks/useAnyWallet';
+import UnifiedWalletModal from '../Wallet/UnifiedWalletModal';
+import onePostNftLogo from '@/Images/onepostnft_image.png';
 
 interface HeaderProps {
   onCreatePost: () => void;
@@ -13,12 +15,14 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ onCreatePost, canCreatePost }) => {
-  const { address } = useAccount();
-  const { disconnect } = useDisconnect();
-  const { isGuestMode } = useGuestBrowsing();
+  const { isConnected, address, disconnectWallet, isConnecting, availableConnectors } = useStarknetWallet();
+  const {
+    isConnected: isXverseConnected,
+    address: xverseAddress,
+    disconnect: disconnectXverse
+  } = useXverseWallet();
+  const { isConnected: isAnyWalletConnected, address: anyWalletAddress } = useAnyWallet();
   const [showWalletModal, setShowWalletModal] = useState(false);
-
-  const isConnected = !!address;
 
   const truncateAddress = (addr: string) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
@@ -28,16 +32,16 @@ const Header: React.FC<HeaderProps> = ({ onCreatePost, canCreatePost }) => {
     setShowWalletModal(true);
   };
 
-  const handleDisconnectWallet = () => {
-    disconnect();
-  };
-
   return (
     <Card className="border-border bg-card animate-fade-in rounded-t-xl fixed mx-auto max-w-[875px] top-0 left-0 right-0 z-50">
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center animate-pulse-glow">
-            <Gem className="w-5 h-5 text-primary-foreground animate-pulse" />
+          <div className="w-10 h-10 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center animate-pulse-glow">
+            <img
+              src={onePostNftLogo}
+              alt="OnePostNft Logo"
+              className="w-full h-full object-cover"
+            />
           </div>
           <div>
             <h1 className="text-xl font-bold text-foreground py-3">
@@ -50,21 +54,19 @@ const Header: React.FC<HeaderProps> = ({ onCreatePost, canCreatePost }) => {
         </div>
 
         <div className="flex items-center gap-3">
-          {isConnected && canCreatePost && (
-            <Button
-              onClick={onCreatePost}
-              className="hidden md:flex bg-primary hover:bg-primary/90 animate-scale-in"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Create Post
-            </Button>
-          )}
+          <Button
+            onClick={onCreatePost}
+            className="hidden md:flex bg-primary hover:bg-primary/90 animate-scale-in"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Create Post
+          </Button>
 
           {/* Mobile wallet connect button */}
           <div className="block md:hidden">
-            {isConnected ? (
+            {isAnyWalletConnected ? (
               <Badge variant="outline" className="text-xs px-2 py-1">
-                {truncateAddress(address!)}
+                {truncateAddress(anyWalletAddress!)}
               </Badge>
             ) : (
               <Button
@@ -80,24 +82,48 @@ const Header: React.FC<HeaderProps> = ({ onCreatePost, canCreatePost }) => {
 
           {/* Desktop wallet section */}
           <div className="hidden md:block">
-            {isConnected ? (
-              <div className="flex items-center gap-3 animate-slide-up">
-                <Badge variant="outline" className="text-sm">
-                  {truncateAddress(address!)}
-                </Badge>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDisconnectWallet}
-                  className="hover:bg-destructive hover:text-destructive-foreground"
-                >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Disconnect
-                </Button>
+            {isAnyWalletConnected ? (
+              <div className="flex items-center gap-2 animate-slide-up">
+                {/* Starknet Wallet */}
+                {isConnected && address && (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-sm">
+                      <span className="text-xs text-muted-foreground mr-1">STK:</span>
+                      {truncateAddress(address)}
+                    </Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={disconnectWallet}
+                      className="hover:bg-destructive hover:text-destructive-foreground"
+                    >
+                      <LogOut className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+
+                {/* Xverse Wallet */}
+                {isXverseConnected && xverseAddress && (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-sm bg-orange-500/10 border-orange-500/50">
+                      <span className="text-xs text-muted-foreground mr-1">🅧</span>
+                      {truncateAddress(xverseAddress)}
+                    </Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={disconnectXverse}
+                      className="hover:bg-destructive hover:text-destructive-foreground"
+                    >
+                      <LogOut className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
             ) : (
               <Button
-                onClick={handleConnectWallet}
+                onClick={() => setShowWalletModal(true)}
+                disabled={isConnecting}
                 className="bg-primary hover:bg-primary/90 animate-scale-in"
               >
                 <Wallet className="w-4 h-4 mr-2" />
@@ -108,10 +134,13 @@ const Header: React.FC<HeaderProps> = ({ onCreatePost, canCreatePost }) => {
         </div>
       </div>
 
-      <WalletSelectionModal
+      {/* Unified wallet connection modal */}
+      <UnifiedWalletModal
         isOpen={showWalletModal}
         onClose={() => setShowWalletModal(false)}
         onSuccess={() => setShowWalletModal(false)}
+        title="Connect Wallet"
+        description="Choose a wallet to connect to the platform"
       />
     </Card>
   );

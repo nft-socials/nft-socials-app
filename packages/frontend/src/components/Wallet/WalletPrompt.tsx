@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Wallet, Sparkles, ShoppingCart, MessageCircle, User, Heart, Tag } from 'lucide-react';
 import { useGuestBrowsing } from '@/context/GuestBrowsingContext';
-import WalletSelectionModal from './WalletSelectionModal';
+import UnifiedWalletModal from './UnifiedWalletModal';
 
 const WalletPrompt: React.FC = () => {
   const { walletPrompt, hideWalletPrompt } = useGuestBrowsing();
@@ -135,10 +135,12 @@ const WalletPrompt: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      <WalletSelectionModal
+      <UnifiedWalletModal
         isOpen={showWalletSelection}
         onClose={handleCloseWalletSelection}
         onSuccess={handleWalletConnected}
+        title="Connect Wallet"
+        description="Connect your wallet to continue with this action"
       />
     </>
   );

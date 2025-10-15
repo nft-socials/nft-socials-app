@@ -20,7 +20,6 @@ const provider = new Provider({});
 
 // Utility to convert ByteArray to string
 function byteArrayToString(byteArray: any): string {
-
   // If it's already a string, return it
   if (typeof byteArray === 'string') {
     return byteArray;
@@ -32,7 +31,7 @@ function byteArrayToString(byteArray: any): string {
       const result = byteArray.data.map((byte: any) => String.fromCharCode(Number(byte))).join('');
       return result;
     } catch (error) {
-      console.error('Error converting ByteArray data:', error);
+      // Silent error handling
     }
   }
 
@@ -42,13 +41,12 @@ function byteArrayToString(byteArray: any): string {
       const result = byteArray.map((byte: any) => String.fromCharCode(Number(byte))).join('');
       return result;
     } catch (error) {
-      console.error('Error converting array:', error);
+      // Silent error handling
     }
   }
 
   // Fallback
-  const fallback = String(byteArray || '');
-  return fallback;
+  return String(byteArray || '');
 }
 
 // Utility to convert string to ByteArray format
@@ -67,7 +65,6 @@ const toAppPost = async (p: any): Promise<AppPost> => {
   // Fetch content from IPFS using multiple gateways for better reliability
   let content = 'Loading content from IPFS...';
   try {
-
     // Try multiple IPFS gateways for better reliability
     const gateways = [
       `https://ipfs.io/ipfs/${contentHash}`,
@@ -83,14 +80,12 @@ const toAppPost = async (p: any): Promise<AppPost> => {
           headers: {
             'Accept': 'application/json',
           },
-          // Add timeout
           signal: AbortSignal.timeout(10000) // 10 second timeout
         });
 
         if (response.ok) {
           data = await response.json();
           break;
-        } else {
         }
       } catch (gatewayError) {
         continue;
@@ -110,7 +105,6 @@ const toAppPost = async (p: any): Promise<AppPost> => {
       content = 'Failed to load content from IPFS';
     }
   } catch (error) {
-    console.error('IPFS fetch error:', error);
     content = 'Failed to load content from IPFS';
   }
 
@@ -240,7 +234,6 @@ async function getProposalIdByTokenId(account: AccountInterface, tokenId: string
 
     return proposal ? String(proposal.id) : null;
   } catch (error) {
-    console.error('Error getting proposal ID:', error);
     return null;
   }
 }
@@ -266,8 +259,6 @@ export async function cancelSell(account: AccountInterface, tokenId: string | nu
 }
 
 export async function buyPost(account: AccountInterface, tokenId: string | number | bigint): Promise<string> {
-  const contract = await getContract(account);
-
   // Get post price
   const post = await getPostByTokenId(String(tokenId));
   const price = BigInt(post.price);
@@ -276,7 +267,6 @@ export async function buyPost(account: AccountInterface, tokenId: string | numbe
   const strkContract = new Contract(strkAbi, universalStrkAddress, account);
   const balanceResult = await strkContract.balanceOf(account.address);
   const balance = BigInt(balanceResult.low || balanceResult);
-
 
   if (balance < price) {
     throw new Error(`Insufficient STRK balance. Need ${price} STRK but have ${balance} STRK`);
@@ -323,8 +313,7 @@ export async function buyPost(account: AccountInterface, tokenId: string | numbe
       String(tokenId)
     );
   } catch (notificationError) {
-    console.error('Error creating buy notification:', notificationError);
-    // Don't throw error for notification failure
+    // Silent error handling for notification failure
   }
 
   return multiCall.transaction_hash;
@@ -351,7 +340,6 @@ export async function getSoldNFTs(): Promise<any[]> {
           salePrice: post.price || 0
         };
       } catch (error) {
-        console.error('Error fetching sold post:', error);
         return null;
       }
     });
@@ -359,7 +347,6 @@ export async function getSoldNFTs(): Promise<any[]> {
     const soldPosts = await Promise.all(soldPostsPromises);
     return soldPosts.filter(post => post !== null);
   } catch (error) {
-    console.error('Error getting sold NFTs:', error);
     return [];
   }
 }
@@ -372,7 +359,6 @@ export async function getUserSoldNFTs(userAddress: string): Promise<string[]> {
     const soldTokenIds: any[] = await (contract as any).get_user_sold_nfts(userAddress);
     return soldTokenIds.map(id => String(id));
   } catch (error) {
-    console.error('Error getting user sold NFTs:', error);
     return [];
   }
 }
@@ -395,7 +381,7 @@ export async function getAllSoldNFTs(): Promise<any[]> {
       soldAt: post.timestamp + (24 * 60 * 60 * 1000), // Estimate sold 1 day after creation
       buyer: post.currentOwner,
       seller: post.author,
-      transactionHash: `0x${Array.from({length: 64}, () => Math.floor(Math.random() * 16).toString(16)).join('')}`, // Generate complete 64-char mock tx hash
+      transactionHash: `0x${Math.random().toString(16).slice(2, 18)}${Math.random().toString(16).slice(2, 18)}${Math.random().toString(16).slice(2, 18)}${Math.random().toString(16).slice(2, 10)}`, // Generate complete mock tx hash
       salePrice: post.price || 0,
       // Additional info for sold NFTs
       createdAt: post.timestamp,
@@ -405,7 +391,6 @@ export async function getAllSoldNFTs(): Promise<any[]> {
       currentPrice: post.price || 0
     }));
   } catch (error) {
-    console.error('Error getting all sold NFTs:', error);
     return [];
   }
 }

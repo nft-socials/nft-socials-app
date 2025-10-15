@@ -7,9 +7,11 @@ import { Post } from '@/context/AppContext';
 import { usePostSwipeActions } from '@/hooks/useSwipeGestures';
 import { getFromIPFS, PostMetadata } from '@/services/ipfs';
 import { useProtectedAction } from '@/context/GuestBrowsingContext';
-import { useAccount } from '@starknet-react/core';
+import { useAnyWallet } from '@/hooks/useAnyWallet';
 import ImageZoomModal from '@/components/Modals/ImageZoomModal';
 import { formatTimeAgo } from '@/utils/timeUtils';
+import onePostNftLogo from '@/Images/onepostnft_image.png';
+
 
 interface PostCardProps {
   post: Post;
@@ -46,7 +48,7 @@ const PostCard: React.FC<PostCardProps> = ({
   const [isLoadingMetadata, setIsLoadingMetadata] = useState(false);
   const [showChatOption, setShowChatOption] = useState(false);
   const [showImageZoom, setShowImageZoom] = useState(false);
-  const { address } = useAccount();
+  const { address } = useAnyWallet();
   const { executeProtectedAction } = useProtectedAction();
 
   // Fetch IPFS metadata to get image and full content
@@ -60,7 +62,7 @@ const PostCard: React.FC<PostCardProps> = ({
             setMetadata(data);
           }
         } catch (error) {
-          console.error('Error fetching metadata:', error);
+          // console.error('Error fetching metadata:', error);
         } finally {
           setIsLoadingMetadata(false);
         }
@@ -83,7 +85,6 @@ const PostCard: React.FC<PostCardProps> = ({
 
   const handleBuyClick = () => {
     executeProtectedAction('buy_nft', () => {
-      setShowChatOption(true);
       onBuy?.(post);
     });
   };
@@ -174,8 +175,12 @@ const PostCard: React.FC<PostCardProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center animate-pulse-glow">
-              <Sparkles className="w-4 h-4 text-primary-foreground" />
+            <div className="w-8 h-8 rounded-full bg-transparent flex items-center justify-center animate-pulse-glow">
+              <img
+            src={onePostNftLogo}
+            alt="OnePostNft Logo"
+            className="relative w-32 h-32 md:w-40 md:h-40 object-contain rounded-2xl shadow-2xl animate-bounce-slow"
+          />
             </div>
             <div>
               <div className="text-sm font-medium text-foreground">{truncateAddress(post.currentOwner)}</div>

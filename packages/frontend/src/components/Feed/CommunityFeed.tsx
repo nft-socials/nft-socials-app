@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw, Loader2, Heart, Share2 } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 import { useAccount } from '@starknet-react/core';
+import { useAnyWallet } from '@/hooks/useAnyWallet';
 import { cancelSell, buyPost } from '@/services/contract';
 import PostCard from '@/components/Feed/PostCard';
 import SellModal from '@/components/Modals/SellModal';
@@ -25,7 +26,8 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ isLoading, posts, onRefre
   const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
   const [sellModalOpen, setSellModalOpen] = useState(false);
   const [selectedPostForSell, setSelectedPostForSell] = useState<Post | null>(null);
-  const { address, account } = useAccount();
+  const { account } = useAccount(); // For Starknet transactions
+  const { address, isConnected } = useAnyWallet(); // For wallet detection
 
   // Load initial like data
   useEffect(() => {
@@ -137,8 +139,13 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ isLoading, posts, onRefre
   };
 
   const handleBuy = async (post: Post) => {
-    if (!account) {
+    if (!isConnected) {
       toast.error('🔐 Please connect your wallet to buy NFT');
+      return;
+    }
+
+    if (!account) {
+      toast.error('🔗 Please connect a Starknet wallet (Argent or Braavos) to buy NFTs. Xverse wallet is for viewing only.');
       return;
     }
 
@@ -146,7 +153,7 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ isLoading, posts, onRefre
 
     try {
       loadingToast = toast.loading('💳 Processing purchase...');
-      const txHash = await buyPost(account, post.tokenId);
+      await buyPost(account, post.tokenId);
 
       // Dismiss loading toast before showing success
       if (loadingToast) {
@@ -192,7 +199,7 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ isLoading, posts, onRefre
       loadingToast = toast.loading('🔄 Canceling listing...');
       // Note: cancelSell typically takes a proposal ID, but we'll use tokenId for now
       // This might need adjustment based on your contract implementation
-      const txHash = await cancelSell(account, post.tokenId);
+      await cancelSell(account, post.tokenId);
 
       // Dismiss loading toast before showing success
       if (loadingToast) {

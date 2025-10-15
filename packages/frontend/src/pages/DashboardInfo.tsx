@@ -1,26 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowRight, Sparkles, Zap } from "lucide-react";
-import { useStarknetWallet } from "@/hooks/useStarknetWallet";
 import React from "react";
 
 interface DashboardInfoProps {
-  onComplete?: () => void;
+  onGetStarted: () => void;
 }
 
-const DashboardInfo: React.FC<DashboardInfoProps> = ({ onComplete }) => {
-  const { isConnected, connectWallet } = useStarknetWallet();
-
-  const handleGetStarted = () => {
-    if (onComplete) {
-      // If onComplete is provided, dismiss hero section and enter guest mode
-      onComplete();
-    } else {
-      // Fallback to connect wallet for backward compatibility
-      connectWallet();
-    }
-  };
-
+const DashboardInfo: React.FC<DashboardInfoProps> = ({ onGetStarted }) => {
   return (
     <div>
       <div className="mt-16 max-w-4xl mx-auto">
@@ -69,25 +55,12 @@ const DashboardInfo: React.FC<DashboardInfoProps> = ({ onComplete }) => {
               </p>
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                {!isConnected ? (
                   <Button
-                    onClick={handleGetStarted}
-                    size="lg"
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 text-lg animate-scale-in"
+                    onClick={onGetStarted}
+                    className="px-8 py-6 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-bold text-lg shadow-lg hover:shadow-xl"
                   >
-                    <Sparkles className="w-5 h-5 mr-2" />
-                    Get Started
+                    Get Started →
                   </Button>
-                ) : (
-                  <Button
-                    size="lg"
-                    className="bg-success hover:bg-success/90 text-success-foreground px-8 py-4 text-lg animate-scale-in"
-                  >
-                    <Zap className="w-5 h-5 mr-2" />
-                    Create First Post
-                    <ArrowRight className="w-5 h-5 ml-2" />
-                  </Button>
-                )}
               </div>
             </div>
           </div>

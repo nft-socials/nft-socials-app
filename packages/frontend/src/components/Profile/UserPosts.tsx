@@ -2,18 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { RefreshCw, Loader2, Gem, Calendar, TrendingUp } from 'lucide-react';
-import { toast } from 'sonner';
+import { RefreshCw, Loader2, Calendar, TrendingUp, Wallet } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import PostCard from '@/components/Feed/PostCard';
-import { useStarknetWallet } from '@/hooks/useStarknetWallet';
-import { usePostNFT } from '@/hooks/usePostNFT';
+import { useAnyWallet } from '@/hooks/useAnyWallet';
 import { getAllPosts } from '@/services/contract';
 import type { Post } from '@/context/AppContext';
 import { LikesService } from '@/services/chatService';
+import onePostNftLogo from '@/Images/onepostnft_image.png';
+import ConnectWalletButton from '@/components/Wallet/ConnectWalletButton';
 
 const UserPosts: React.FC = () => {
-  const { address, isConnected } = useStarknetWallet();
-  const { fetchUserPosts } = usePostNFT();
+  const { address, isConnected } = useAnyWallet();
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
@@ -125,18 +125,19 @@ const UserPosts: React.FC = () => {
     }
   };
 
-  const handleSellProposal = (post: Post) => {
+  const handleSell = (_post: Post) => {
     toast.success('Sell functionality coming soon!');
   };
 
   if (!isConnected) {
     return (
       <Card className="p-8 text-center bg-card border-border">
-        <Gem className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+        <Wallet className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
         <h2 className="text-xl font-semibold mb-2">Connect Your Wallet</h2>
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground mb-6">
           Connect your wallet to view your NFT posts
         </p>
+        <ConnectWalletButton />
       </Card>
     );
   }
@@ -151,8 +152,12 @@ const UserPosts: React.FC = () => {
       <Card className="p-6 bg-card border-border">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center">
-              <Gem className="w-6 h-6 text-primary-foreground animate-pulse" />
+            <div className="w-12 h-12 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
+              <img
+                src={onePostNftLogo}
+                alt="My NFT Collection"
+                className="w-full h-full object-cover"
+              />
             </div>
             <div>
               <h1 className="text-2xl font-bold">My NFT Collection</h1>
@@ -187,7 +192,13 @@ const UserPosts: React.FC = () => {
           </div>
           
           <div className="text-center p-4 bg-muted/50 rounded-lg">
-            <Gem className="w-6 h-6 mx-auto mb-2 text-accent" />
+            <div className="w-6 h-6 mx-auto mb-2 rounded overflow-hidden flex items-center justify-center">
+              <img
+                src={onePostNftLogo}
+                alt="Average Likes"
+                className="w-full h-full object-cover"
+              />
+            </div>
             <div className="text-2xl font-bold">{avgLikes}</div>
             <div className="text-sm text-muted-foreground">Avg Likes/Post</div>
           </div>
@@ -210,7 +221,13 @@ const UserPosts: React.FC = () => {
           </div>
         ) : posts.length === 0 ? (
           <div className="text-center py-12">
-            <Gem className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+            <div className="w-16 h-16 mx-auto mb-4 rounded-lg overflow-hidden flex items-center justify-center">
+              <img
+                src={onePostNftLogo}
+                alt="No NFTs"
+                className="w-full h-full object-cover opacity-50"
+              />
+            </div>
             <h3 className="text-lg font-semibold mb-2">No NFTs Yet</h3>
             <p className="text-muted-foreground mb-4">
               Create your first NFT post or buy NFTs from the marketplace to see them here!
@@ -219,15 +236,17 @@ const UserPosts: React.FC = () => {
         ) : (
           <div className="space-y-4">
             {posts.map((post) => (
-              <PostCard 
-                key={post.tokenId} 
+              <PostCard
+                key={post.tokenId}
                 post={post}
                 onLike={handleLike}
                 onShare={handleShare}
-                onSwapClick={handleSellProposal}
-                showSwapButton={true}
+                onSell={handleSell}
+                showSellButton={true}
                 isLiked={likedPosts.has(post.tokenId)}
                 likeCount={likeCounts[post.tokenId] || 0}
+                isOwner={post.currentOwner?.toLowerCase() === address?.toLowerCase()}
+                isForSale={post.isForSale || false}
               />
             ))}
           </div>

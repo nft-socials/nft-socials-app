@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { useAccount } from '@starknet-react/core';
+import { useAnyWallet } from '@/hooks/useAnyWallet';
 
 interface GuestBrowsingContextType {
   isGuestMode: boolean;
@@ -51,14 +51,14 @@ const GUEST_ALLOWED_ACTIONS = [
 ];
 
 export const GuestBrowsingProvider: React.FC<GuestBrowsingProviderProps> = ({ children }) => {
-  const { address } = useAccount();
+  const { address, isConnected } = useAnyWallet();
   const [walletPrompt, setWalletPrompt] = useState({
     isVisible: false,
     action: '',
     onSuccess: undefined as (() => void) | undefined
   });
 
-  const isGuestMode = !address;
+  const isGuestMode = !isConnected;
 
   const requiresWallet = (action: string): boolean => {
     return WALLET_REQUIRED_ACTIONS.includes(action);
@@ -103,7 +103,7 @@ export const useProtectedAction = () => {
 
   const executeProtectedAction = (action: string, callback: () => void) => {
     if (isGuestMode) {
-      showWalletPrompt(action);
+      showWalletPrompt(action, callback);
     } else {
       callback();
     }
