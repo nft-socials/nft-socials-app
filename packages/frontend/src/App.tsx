@@ -34,7 +34,7 @@ const App = () => {
     if (!document.querySelector('meta[name="theme-color"]')) {
       const themeColorMeta = document.createElement('meta');
       themeColorMeta.name = 'theme-color';
-      themeColorMeta.content = '#FF6347';
+      themeColorMeta.content = '#FFD700';
       document.head.appendChild(themeColorMeta);
     }
   }, []);

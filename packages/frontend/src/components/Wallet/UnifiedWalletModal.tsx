@@ -30,6 +30,54 @@ const isMobileDevice = () => {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 };
 
+// Mobile deep link URLs for wallet apps
+const MOBILE_WALLET_DEEP_LINKS = {
+  argentX: {
+    ios: 'https://apps.apple.com/app/argent/id1358741926',
+    android: 'https://play.google.com/store/apps/details?id=im.argent.contractwalletclient',
+    deepLink: 'argent://app',
+    webWallet: 'https://web.argent.xyz'
+  },
+  braavos: {
+    ios: 'https://apps.apple.com/app/braavos-smart-wallet/id1566384677',
+    android: 'https://play.google.com/store/apps/details?id=com.braavos',
+    deepLink: 'braavos://app',
+    webWallet: 'https://braavos.app'
+  },
+  xverse: {
+    ios: 'https://apps.apple.com/app/xverse-wallet/id1552167538',
+    android: 'https://play.google.com/store/apps/details?id=io.xverse.wallet',
+    deepLink: 'xverse://app',
+    webWallet: 'https://wallet.xverse.app'
+  }
+};
+
+// Check if mobile wallet app is likely installed
+const checkMobileWalletInstalled = async (walletId: string): Promise<boolean> => {
+  if (!isMobileDevice()) return false;
+
+  const deepLink = MOBILE_WALLET_DEEP_LINKS[walletId as keyof typeof MOBILE_WALLET_DEEP_LINKS]?.deepLink;
+  if (!deepLink) return false;
+
+  // Try to detect if the app can handle the deep link
+  try {
+    // Create a hidden iframe to test the deep link
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = deepLink;
+    document.body.appendChild(iframe);
+
+    // Clean up after a short delay
+    setTimeout(() => {
+      document.body.removeChild(iframe);
+    }, 1000);
+
+    return true; // Assume installed if no error
+  } catch {
+    return false;
+  }
+};
+
 const getWalletIcon = (walletId: string): string => {
   const icons: Record<string, string> = {
     'argentx': '🦊',
@@ -94,30 +142,48 @@ const UnifiedWalletModal: React.FC<UnifiedWalletModalProps> = ({
       id: 'argentX',
       name: 'Argent X',
       icon: '🦊',
-      description: 'Most popular Starknet wallet',
-      downloadUrl: 'https://www.argent.xyz/argent-x/',
-      isInstalled: typeof window !== 'undefined' && !!(window as any).starknet_argentX,
+      description: isMobile ? 'Starknet wallet app' : 'Most popular Starknet wallet',
+      downloadUrl: isMobile
+        ? (navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iPad')
+           ? MOBILE_WALLET_DEEP_LINKS.argentX.ios
+           : MOBILE_WALLET_DEEP_LINKS.argentX.android)
+        : 'https://www.argent.xyz/argent-x/',
+      isInstalled: isMobile
+        ? true // Always show as available on mobile
+        : (typeof window !== 'undefined' && !!(window as any).starknet_argentX),
       type: 'starknet'
     },
     {
       id: 'braavos',
       name: 'Braavos',
       icon: '🛡️',
-      description: 'Advanced Starknet wallet',
-      downloadUrl: 'https://braavos.app/',
-      isInstalled: typeof window !== 'undefined' && !!(window as any).starknet_braavos,
+      description: isMobile ? 'Advanced Starknet wallet app' : 'Advanced Starknet wallet',
+      downloadUrl: isMobile
+        ? (navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iPad')
+           ? MOBILE_WALLET_DEEP_LINKS.braavos.ios
+           : MOBILE_WALLET_DEEP_LINKS.braavos.android)
+        : 'https://braavos.app/',
+      isInstalled: isMobile
+        ? true // Always show as available on mobile
+        : (typeof window !== 'undefined' && !!(window as any).starknet_braavos),
       type: 'starknet'
     },
     {
       id: 'xverse',
       name: 'Xverse',
       icon: '🅧',
-      description: 'Bitcoin wallet',
-      downloadUrl: 'https://www.xverse.app/',
-      isInstalled: typeof window !== 'undefined' && (
-        !!(window as any).XverseProviders ||
-        !!(window as any).BitcoinProvider
-      ),
+      description: isMobile ? 'Bitcoin wallet app' : 'Bitcoin wallet',
+      downloadUrl: isMobile
+        ? (navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iPad')
+           ? MOBILE_WALLET_DEEP_LINKS.xverse.ios
+           : MOBILE_WALLET_DEEP_LINKS.xverse.android)
+        : 'https://www.xverse.app/',
+      isInstalled: isMobile
+        ? true // Always show as available on mobile
+        : (typeof window !== 'undefined' && (
+            !!(window as any).XverseProviders ||
+            !!(window as any).BitcoinProvider
+          )),
       type: 'bitcoin'
     }
   ];
@@ -127,13 +193,19 @@ const UnifiedWalletModal: React.FC<UnifiedWalletModalProps> = ({
       setToastShown(false);
       setConnectingWalletId(walletId);
 
-      // Handle Xverse wallet separately
+      // Handle mobile wallet connections
+      if (isMobile) {
+        await handleMobileWalletConnect(walletId);
+        return;
+      }
+
+      // Handle Xverse wallet separately for desktop
       if (walletId === 'xverse') {
         await connectXverse();
         return;
       }
 
-      // Handle Starknet wallets
+      // Handle Starknet wallets for desktop
       const connector = connectors.find(c =>
         c.id.toLowerCase().includes(walletId.toLowerCase()) ||
         c.name.toLowerCase().includes(walletId.toLowerCase())
@@ -154,6 +226,86 @@ const UnifiedWalletModal: React.FC<UnifiedWalletModalProps> = ({
       } else {
         toast.error(`❌ Failed to connect: ${error.message || 'Please try again'}`);
       }
+      setConnectingWalletId(null);
+    }
+  };
+
+  const handleMobileWalletConnect = async (walletId: string) => {
+    const walletConfig = MOBILE_WALLET_DEEP_LINKS[walletId as keyof typeof MOBILE_WALLET_DEEP_LINKS];
+
+    if (!walletConfig) {
+      toast.error('❌ Wallet not supported on mobile');
+      setConnectingWalletId(null);
+      return;
+    }
+
+    try {
+      // For Xverse, use the existing hook
+      if (walletId === 'xverse') {
+        await connectXverse();
+        return;
+      }
+
+      // For Starknet wallets (Argent, Braavos), try different connection methods
+      if (walletId === 'argentX' || walletId === 'braavos') {
+        // First, try to use web wallet if available
+        if (typeof window !== 'undefined' && (window as any).starknet) {
+          const starknetWallets = (window as any).starknet;
+          let targetWallet = null;
+
+          if (Array.isArray(starknetWallets)) {
+            targetWallet = starknetWallets.find((wallet: any) =>
+              wallet.id?.toLowerCase().includes(walletId.toLowerCase()) ||
+              wallet.name?.toLowerCase().includes(walletId.toLowerCase())
+            );
+          } else if (starknetWallets.id?.toLowerCase().includes(walletId.toLowerCase())) {
+            targetWallet = starknetWallets;
+          }
+
+          if (targetWallet) {
+            // Try to connect using the mobile wallet
+            await targetWallet.enable();
+            toast.success(`🎉 ${walletId === 'argentX' ? 'Argent' : 'Braavos'} connected!`);
+            return;
+          }
+        }
+
+        // If web wallet not available, try deep link
+        const deepLink = walletConfig.deepLink;
+        const webWallet = walletConfig.webWallet;
+
+        // Show instructions to user
+        toast.loading(`Opening ${walletId === 'argentX' ? 'Argent' : 'Braavos'} app...`, {
+          duration: 5000,
+          description: 'If the app doesn\'t open, please open it manually and approve the connection.'
+        });
+
+        // Try deep link first
+        try {
+          window.location.href = deepLink;
+
+          // Fallback to web wallet after a delay
+          setTimeout(() => {
+            if (document.hidden) return; // User likely switched to wallet app
+            window.open(webWallet, '_blank');
+          }, 2000);
+
+        } catch (error) {
+          // Fallback to web wallet
+          window.open(webWallet, '_blank');
+        }
+
+        // Set a timeout to reset connecting state
+        setTimeout(() => {
+          setConnectingWalletId(null);
+          toast.dismiss();
+          toast.info('💡 Please approve the connection in your wallet app, then refresh this page.');
+        }, 10000);
+      }
+
+    } catch (error: any) {
+      console.error('Mobile wallet connection error:', error);
+      toast.error(`❌ Failed to connect: ${error.message || 'Please try again'}`);
       setConnectingWalletId(null);
     }
   };
@@ -196,7 +348,7 @@ const UnifiedWalletModal: React.FC<UnifiedWalletModalProps> = ({
                 ) : (
                   <>
                     <Wallet className="w-4 h-4 mr-2" />
-                    Connect
+                    {isMobile ? 'Open App' : 'Connect'}
                   </>
                 )}
               </Button>
@@ -272,17 +424,20 @@ const UnifiedWalletModal: React.FC<UnifiedWalletModalProps> = ({
             </Card>
           )}
 
-          {/* Mobile help text */}
-          {isMobile && connectingWalletId && (
+          {/* Mobile instructions */}
+          {isMobile && (
             <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
               <div className="flex items-start gap-3">
                 <Smartphone className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
                 <div className="text-sm">
                   <p className="font-medium text-blue-900 dark:text-blue-100 mb-1">
-                    Waiting for wallet app...
+                    📱 Mobile Wallet Connection
                   </p>
                   <p className="text-blue-700 dark:text-blue-300">
-                    Please approve the connection request in your wallet app.
+                    {connectingWalletId
+                      ? 'Opening wallet app... Please approve the connection request.'
+                      : 'Tap "Open App" to connect your wallet. Make sure you have the wallet app installed.'
+                    }
                   </p>
                 </div>
               </div>
